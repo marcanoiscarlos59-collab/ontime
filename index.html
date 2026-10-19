@@ -185,15 +185,36 @@
       font-weight: bold;
     }
 
+    .acciones-horario {
+      display: flex;
+      gap: 6px;
+    }
+
     .btn-ver-bus {
       background: #0284C7;
       color: white;
       border: none;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 6px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    .btn-alarma {
+      background: #334155;
+      color: #94A3B8;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-alarma.activada {
+      background: #16A34A;
+      color: white;
     }
 
     .icono-marcador {
@@ -255,6 +276,7 @@
     let marcadorBus = null;
     let destinoActual = 'JuanGriego';
     let unidadesActivas = [];
+    let alarmaReservada = null; // Guarda el horario seleccionado para notificar al usuario
 
     const iconoParada = L.divIcon({
       html: '<div class="icono-marcador">🚏</div>',
@@ -332,6 +354,7 @@
 
       unidadesActivas = ubicaciones || [];
       renderizarHorariosNormales();
+      verificarAlarmaActiva();
 
       const params = new URLSearchParams(window.location.search);
       const busActive = params.get('busActive');
@@ -356,6 +379,10 @@
         const claseLetra = item.linea === 'V' ? 'badge-v' : 'badge-b';
         const nombreLinea = item.linea === 'V' ? 'Villarroeles' : 'Brisa de la Sierra';
 
+        const esAlarmaActiva = alarmaReservada === item.hora;
+        const textoAlarma = esAlarmaActiva ? '🔔 Activada' : '⏰ Avisarme';
+        const claseAlarma = esAlarmaActiva ? 'btn-alarma activada' : 'btn-alarma';
+
         let textoEstado = '<span class="estado-bus">⏳ Aún no ha salido</span>';
         if (busActivo) {
           textoEstado = `<span class="estado-bus en-ruta">🟢 En vía (Unidad #${busActivo.id_bus})</span>`;
@@ -369,10 +396,36 @@
               ${textoEstado}
             </div>
           </div>
-          <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}')">📍 Ver Bus</button>
+          <div class="acciones-horario">
+            <button class="${claseAlarma}" onclick="toggleAlarma('${item.hora}')">${textoAlarma}</button>
+            <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}')">📍 Ver Bus</button>
+          </div>
         `;
         contenedor.appendChild(tarjeta);
       });
+    }
+
+    function toggleAlarma(hora) {
+      if (alarmaReservada === hora) {
+        alarmaReservada = null;
+        alert(`Has cancelado la notificación para la salida de las ${hora}.`);
+      } else {
+        alarmaReservada = hora;
+        alert(`🔔 ¡Notificación activa!\n\nTe avisaremos en cuanto la unidad de las ${hora} inicie su recorrido en la vía.`);
+      }
+      renderizarHorariosNormales();
+    }
+
+    function verificarAlarmaActiva() {
+      if (!alarmaReservada) return;
+
+      const busEnRuta = unidadesActivas.find(b => b.horario_salida === alarmaReservada && b.estado_unidad === 'SALIO');
+
+      if (busEnRuta) {
+        alert(`🚨 ¡ALERTA DE BUS EN CAMINO!\n\nLa unidad #${busEnRuta.id_bus} correspondiente a la hora ${alarmaReservada} ya inició su transmisión GPS y va en vía. ¡Atento a tu parada!`);
+        alarmaReservada = null; // Se dispara una vez y se desactiva
+        renderizarHorariosNormales();
+      }
     }
 
     async function rastrearUnidad(horaSeleccionada) {
