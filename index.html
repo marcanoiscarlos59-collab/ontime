@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OnTime - Ruta 201 (Juan Griego / Cesáreo Armas)</title>
+  <title>OnTime - Ruta 201 (Juan Griego / CC La Vela)</title>
 
   <!-- Leaflet CSS/JS y Supabase -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -36,12 +36,46 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }
 
+    .header-izquierda {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     header h1 {
       font-size: 1.4rem;
       background: linear-gradient(90deg, #A855F7, #38BDF8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       font-weight: 800;
+    }
+
+    .semaforo-vivo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10B981;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: #34D399;
+      font-weight: bold;
+    }
+
+    .punto-led {
+      width: 8px;
+      height: 8px;
+      background-color: #10B981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10B981;
+      animation: parpadear 1.5s infinite;
+    }
+
+    @keyframes parpadear {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
     }
 
     .badge-linea {
@@ -112,9 +146,10 @@
       box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
     }
 
+    /* Tarjetas de horarios limpios y directos */
     .tarjeta-horario {
       background: #1E293B;
-      padding: 12px 14px;
+      padding: 14px 16px;
       border-radius: 10px;
       margin-bottom: 8px;
       display: flex;
@@ -124,38 +159,18 @@
     }
 
     .hora-texto {
-      font-size: 1.15rem;
+      font-size: 1.25rem;
       font-weight: 800;
       color: #F8FAFC;
-    }
-
-    .tag-bus {
-      font-size: 0.72rem;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-
-    .villarroeles {
-      background: rgba(168, 85, 247, 0.2);
-      color: #E9D5FF;
-      border: 1px solid #A855F7;
-    }
-
-    .brisa {
-      background: rgba(56, 189, 248, 0.2);
-      color: #BAE6FD;
-      border: 1px solid #38BDF8;
     }
 
     .btn-ver-bus {
       background: #0284C7;
       color: white;
       border: none;
-      padding: 6px 10px;
+      padding: 8px 14px;
       border-radius: 6px;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: bold;
       cursor: pointer;
     }
@@ -168,8 +183,14 @@
 <body>
 
   <header>
-    <h1>🚏 OnTime <span style="font-size: 0.85rem; color: #94A3B8;">| Ruta 201</span></h1>
-    <div class="badge-linea">Turis-Mar c.a.</div>
+    <div class="header-izquierda">
+      <h1>🚏 OnTime</h1>
+      <div class="semaforo-vivo">
+        <div class="punto-led"></div>
+        <span>EN VIVO</span>
+      </div>
+    </div>
+    <div class="badge-linea">Ruta 201 | Turis-Mar c.a.</div>
   </header>
 
   <div id="contenedor-principal">
@@ -178,7 +199,7 @@
         <h2 class="seccion-titulo">⏰ Horarios de Salida</h2>
         <div class="selector-origen">
           <button class="btn-origen activo" id="btn-jg" onclick="enfocarUbicacion('JuanGriego')">🚌 Juan Griego</button>
-          <button class="btn-origen" id="btn-ca" onclick="enfocarUbicacion('CesareoArmas')">📍 Cesáreo Armas</button>
+          <button class="btn-origen" id="btn-vela" onclick="enfocarUbicacion('LaVela')">🛍️ CC La Vela</button>
         </div>
         <div id="lista-horarios">Cargando horarios...</div>
       </div>
@@ -193,9 +214,8 @@
 
     // Coordenadas exactas en la Isla de Margarita
     const COORDS_JUAN_GRIEGO = [11.0825, -63.9664]; // Terminal de Juan Griego
-    const COORDS_CESAREO_ARMAS = [10.9635, -63.8560]; // Zona de Av. Cesáreo Armas / Porlamar
+    const COORDS_LA_VELA = [11.0250, -63.8340];     // CC La Vela (Pampatar)
 
-    // Inicializar mapa
     const mapa = L.map('mapa').setView([11.0333, -63.8800], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -206,32 +226,19 @@
     let marcadorPunto = null;
     let marcadorBus = null;
 
-    // Horarios de respaldo integrados
+    // Listas limpias de horarios basadas en tu imagen de referencia
     const horariosLocales = {
       JuanGriego: [
-        { hora: '05:45', tipo: 'Brisa de la Sierra' },
-        { hora: '06:15', tipo: 'Brisa de la Sierra' },
-        { hora: '06:25', tipo: 'Villarroeles' },
-        { hora: '06:45', tipo: 'Villarroeles' },
-        { hora: '07:15', tipo: 'Brisa de la Sierra' },
-        { hora: '07:45', tipo: 'Villarroeles' },
-        { hora: '08:15', tipo: 'Villarroeles' },
-        { hora: '09:15', tipo: 'Brisa de la Sierra' },
-        { hora: '10:15', tipo: 'Villarroeles' },
-        { hora: '11:15', tipo: 'Brisa de la Sierra' },
-        { hora: '12:15', tipo: 'Villarroeles' }
+        '05:45', '06:15', '06:25', '06:45', '07:15', '07:45', 
+        '08:15', '08:45', '09:15', '09:25', '09:45', '10:15', 
+        '10:45', '11:15', '11:25', '11:45', '12:15', '12:45', 
+        '13:15', '14:15', '15:15', '16:15', '17:15', '18:15'
       ],
-      CesareoArmas: [
-        { hora: '06:30', tipo: 'Villarroeles' },
-        { hora: '07:15', tipo: 'Brisa de la Sierra' },
-        { hora: '07:45', tipo: 'Villarroeles' },
-        { hora: '08:15', tipo: 'Brisa de la Sierra' },
-        { hora: '09:15', tipo: 'Brisa de la Sierra' },
-        { hora: '10:15', tipo: 'Brisa de la Sierra' },
-        { hora: '11:15', tipo: 'Villarroeles' },
-        { hora: '12:15', tipo: 'Brisa de la Sierra' },
-        { hora: '13:15', tipo: 'Brisa de la Sierra' },
-        { hora: '14:15', tipo: 'Villarroeles' }
+      LaVela: [
+        '06:30', '07:15', '07:45', '08:15', '08:45', '09:15', 
+        '09:45', '10:15', '10:45', '11:15', '11:45', '12:15', 
+        '12:45', '13:15', '14:15', '15:15', '16:15', '16:45', 
+        '17:15', '17:45', '18:15', '18:45', '19:15', '20:15'
       ]
     };
 
@@ -243,9 +250,9 @@
         mapa.flyTo(COORDS_JUAN_GRIEGO, 16, { duration: 1.5 });
         mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal de Juan Griego");
       } else {
-        document.getElementById('btn-ca').classList.add('activo');
-        mapa.flyTo(COORDS_CESAREO_ARMAS, 16, { duration: 1.5 });
-        mostrarPin(COORDS_CESAREO_ARMAS, "📍 Av. Cesáreo Armas");
+        document.getElementById('btn-vela').classList.add('activo');
+        mapa.flyTo(COORDS_LA_VELA, 16, { duration: 1.5 });
+        mostrarPin(COORDS_LA_VELA, "🛍️ CC La Vela (Pampatar)");
       }
 
       renderizarHorarios(horariosLocales[destino]);
@@ -261,25 +268,18 @@
       const contenedor = document.getElementById('lista-horarios');
       contenedor.innerHTML = '';
 
-      lista.forEach(item => {
-        const esVillarroeles = item.tipo.includes('Villarroeles');
-        const claseTag = esVillarroeles ? 'villarroeles' : 'brisa';
-        const labelTipo = esVillarroeles ? 'V: Villarroeles' : 'B: Brisa de la Sierra';
-
+      lista.forEach(hora => {
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-horario';
         tarjeta.innerHTML = `
-          <div>
-            <div class="hora-texto">🕒 ${item.hora}</div>
-            <span class="tag-bus ${claseTag}">${labelTipo}</span>
-          </div>
-          <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}', '${labelTipo}')">📍 Ver Bus</button>
+          <div class="hora-texto">🕒 ${hora}</div>
+          <button class="btn-ver-bus" onclick="rastrearUnidad('${hora}')">📍 Ver Bus</button>
         `;
         contenedor.appendChild(tarjeta);
       });
     }
 
-    async function rastrearUnidad(hora, tipoBus) {
+    async function rastrearUnidad(hora) {
       const { data: ubicaciones } = await clienteSupabase
         .from('ubicaciones_tiempo_real')
         .select('*')
@@ -287,7 +287,7 @@
         .limit(1);
 
       if (!ubicaciones || ubicaciones.length === 0) {
-        alert(`La unidad de las ${hora} (${tipoBus}) aún no ha encendido el GPS.`);
+        alert(`La unidad de las ${hora} aún no ha encendido el GPS en la app de choferes.`);
         return;
       }
 
@@ -301,7 +301,6 @@
         <div style="color:#111;">
           <b>🚌 Ruta 201 en Vivo</b><br>
           <b>Salida:</b> ${hora}<br>
-          <b>Unidad:</b> ${tipoBus}<br>
           <b>Velocidad:</b> ${bus.velocidad || 0} km/h
         </div>
       `).openPopup();
