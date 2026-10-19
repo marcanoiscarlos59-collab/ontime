@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OnTime - Transporte en Tiempo Real</title>
+
+  <!-- Hojas de estilo e librerías de Leaflet (Mapas) y Supabase JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background-color: #1E293B;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      color: #38BDF8;
+    }
+
+    #contenedor-principal {
+      display: flex;
+      flex: 1;
+    }
+
+    #panel-lateral {
+      width: 320px;
+      background-color: #F8FAFC;
+      border-right: 1px solid #E2E8F0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    #mapa {
+      flex: 1;
+      height: 100%;
+    }
+
+    .tarjeta-parada {
+      background: white;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border-left: 4px solid #0EA5E9;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .tarjeta-parada:hover {
+      background: #F1F5F9;
+    }
+
+    .tarjeta-parada h3 {
+      font-size: 1rem;
+      color: #0F172A;
+    }
+
+    .tarjeta-parada p {
+      font-size: 0.85rem;
+      color: #64748B;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🚏 OnTime - Sistema de Transporte</h1>
+    <span>Estado: <strong style="color: #4ADE80;">En Vivo</strong></span>
+  </header>
+
+  <div id="contenedor-principal">
+    <!-- Panel Lateral con lista de paradas -->
+    <div id="panel-lateral">
+      <h2 style="margin-bottom: 15px; font-size: 1.2rem;">Paradas Disponibles</h2>
+      <div id="lista-paradas">Cargando paradas...</div>
+    </div>
+
+    <!-- Contenedor del Mapa -->
+    <div id="mapa"></div>
+  </div>
+
+  <script>
+    // ========================================================
+    // 1. CONFIGURACIÓN CON TU URL DE PROYECTO
+    // ========================================================
+    const SUPABASE_URL = 'https://ykwhdyvtlhjvusyjqlgb.supabase.co'; 
+    
+    // Pega tu clave "anon" pública aquí (la encuentras en Settings -> API Keys)
+    const SUPABASE_KEY = 'PEGA_AQUI_TU_CLAVE_ANON_PUBLIC';
+
+    const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ========================================================
+    // 2. INICIALIZAR EL MAPA (Centro inicial)
+    // ========================================================
+    // Puedes ajustar [10.4806, -66.9036] por la latitud y longitud de tu ciudad
+    const mapa = L.map('mapa').setView([10.4806, -66.9036], 13);
+
+    // Capa de mapa interactivo gratuito (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(mapa);
+
+    // ========================================================
+    // 3. OBTENER Y MOSTRAR PARADAS DESDE SUPABASE
+    // ========================================================
+    async function cargarParadas() {
+      const { data: paradas, error } = await clienteSupabase
+        .from('paradas')
+        .select('*');
+
+      const contenedorLista = document.getElementById('lista-paradas');
+
+      if (error) {
+        console.error('Error al cargar paradas:', error);
+        contenedorLista.innerHTML = '<p style="color:red;">Error al conectar con la base de datos.</p>';
+        return;
+      }
+
+      if (!paradas || paradas.length === 0) {
+        contenedorLista.innerHTML = '<p>No hay paradas registradas aún en la base de datos.</p>';
+        return;
+      }
+
+      contenedorLista.innerHTML = '';
+
+      // Recorrer cada parada y agregar un marcador al mapa
+      paradas.forEach(parada => {
+        // Marcador en el mapa
+        const marcador = L.marker([parada.latitud, parada.longitud]).addTo(mapa);
+        marcador.bindPopup(`<b>${parada.nombre_parada}</b><br>ID Parada: ${parada.id}`);
+
+        // Tarjeta en el panel lateral
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'tarjeta-parada';
+        tarjeta.innerHTML = `
+          <h3>${parada.nombre_parada}</h3>
+          <p>Lat: ${parada.latitud} | Lng: ${parada.longitud}</p>
+        `;
+        
+        // Centrar mapa al hacer clic en la tarjeta de la lista
+        tarjeta.addEventListener('click', () => {
+          mapa.flyTo([parada.latitud, parada.longitud], 16);
+          marcador.openPopup();
+        });
+
+        contenedorLista.appendChild(tarjeta);
+      });
+    }
+
+    // ========================================================
+    // 4. ESCUCHAR ACTUALIZACIONES DE BUSES EN TIEMPO REAL
+    // ========================================================
+    let marcadorBus = null;
+
+    clienteSupabase
+      .channel('bus-movimiento')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'ubicaciones_tiempo_real' 
+      }, payload => {
+        const nuevaUbicacion = payload.new;
+        console.log('¡Ubicación actualizada en tiempo real!', nuevaUbicacion);
+
+        // Mover o crear el marcador del bus en el mapa
+        if (marcadorBus) {
+          marcadorBus.setLatLng([nuevaUbicacion.latitud, nuevaUbicacion.longitud]);
+        } else {
+          marcadorBus = L.marker([nuevaUbicacion.latitud, nuevaUbicacion.longitud]).addTo(mapa);
+        }
+        marcadorBus.bindPopup(`<b>Bus ID: ${nuevaUbicacion.id_bus}</b><br>Velocidad: ${nuevaUbicacion.velocidad} km/h`).openPopup();
+      })
+      .subscribe();
+
+    // Ejecutar carga inicial
+    cargarParadas();
+  </script>
+</body>
+</html>
