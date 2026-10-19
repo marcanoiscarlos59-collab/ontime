@@ -205,7 +205,7 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const PIN_AUTORIZADO = "2010"; // PIN Secreto
+    const PIN_AUTORIZADO = "2010"; 
     let fotoEnBase64 = null;
 
     function convertirFoto(event) {
@@ -259,20 +259,21 @@
         return;
       }
 
+      const tipoBus = document.getElementById('tipoBus').value;
       const horarioSeleccionado = document.getElementById('horarioSalida').value;
-      document.getElementById('estadoTxt').innerHTML = '<span style="color:#38BDF8;">📡 Obteniendo señal GPS y conectando...</span>';
+      document.getElementById('estadoTxt').innerHTML = '<span style="color:#38BDF8;">📡 Obteniendo señal GPS y conectando con Supabase...</span>';
 
-      // Capturar la posición actual del celular y enviarla directo a Supabase
+      // Capturar la posición actual del celular
       navigator.geolocation.getCurrentPosition(
         async (posicion) => {
           const lat = posicion.coords.latitude;
           const lng = posicion.coords.longitude;
           const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0;
 
-          // Inserción directa (evita errores de clave única)
+          // Usamos upsert especificando la llave id_bus para que actualice o cree el registro sin error
           const { error } = await clienteSupabase
             .from('ubicaciones_tiempo_real')
-            .insert([{
+            .upsert({
               id_bus: parseInt(idBus),
               latitud: lat,
               longitud: lng,
@@ -280,23 +281,28 @@
               foto_url: fotoEnBase64 || null,
               horario_salida: horarioSeleccionado,
               estado_unidad: 'SALIO'
-            }]);
+            }, { onConflict: 'id_bus' });
 
           if (error) {
-            console.error("Detalle del error:", error);
-            alert("⚠️ Error conectando con el servidor. Verifique su conexión.");
-            document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">Error al conectar con la base de datos.</span>';
+            console.error("Detalle técnico del error en Supabase:", error);
+            alert("⚠️ Error de base de datos: " + (error.message || "Verifique las columnas de la tabla."));
+            document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">Error de BD. Revise la consola.</span>';
             return;
           }
 
-          // Redirección exitosa al mapa principal con la unidad activa
+          // Redirección exitosa al mapa principal
           window.location.href = `index.html?busActive=${idBus}&hora=${encodeURIComponent(horarioSeleccionado)}`;
         },
         (error) => {
-          alert("⚠️ Active los permisos de ubicación/GPS en su teléfono para transmitir.");
-          document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">⚠️ Active la ubicación en su teléfono.</span>';
+          let mensajeGPS = "Active los permisos de ubicación en su teléfono.";
+          if (error.code === 1) mensajeGPS = "Permiso de ubicación denegado por el usuario.";
+          if (error.code === 2) mensajeGPS = "Información de ubicación no disponible.";
+          if (error.code === 3) mensajeGPS = "Tiempo de espera agotado buscando GPS.";
+          
+          alert("⚠️ " + mensajeGPS);
+          document.getElementById('estadoTxt').innerHTML = `<span style="color:#EF4444;">${mensajeGPS}</span>`;
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
       );
     }
   </script>
