@@ -144,7 +144,7 @@
       gap: 10px;
     }
 
-    .badge-linea-letra {
+    .badge-letra {
       padding: 4px 8px;
       border-radius: 6px;
       font-size: 0.75rem;
@@ -164,20 +164,41 @@
     }
 
     .hora-texto {
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 800;
       color: #F8FAFC;
+    }
+
+    .acciones-horario {
+      display: flex;
+      gap: 6px;
     }
 
     .btn-ver-bus {
       background: #0284C7;
       color: white;
       border: none;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 6px;
       font-size: 0.75rem;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    .btn-alarma {
+      background: #334155;
+      color: #94A3B8;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-alarma.activada {
+      background: #16A34A;
+      color: white;
     }
 
     .icono-marcador {
@@ -200,7 +221,7 @@
     <div class="header-info">
       <h1>🚏 Turis-Mar | Ruta 201</h1>
     </div>
-    <a href="conductor.html" class="btn-chofer">🔑 Chofer</a>
+    <a href="conductor.html?v=3" class="btn-chofer">🔑 Chofer</a>
   </header>
 
   <div id="contenedor-app">
@@ -237,6 +258,7 @@
     let marcadorPunto = null;
     let marcadorBus = null;
     let destinoActual = 'JuanGriego';
+    let alarmaReservada = null; // Almacena la hora que el usuario eligió para su notificación personal
 
     const iconoParada = L.divIcon({
       html: '<div class="icono-marcador">🚏</div>',
@@ -252,7 +274,6 @@
       iconAnchor: [15, 15]
     });
 
-    // Horarios exactos tal cual aparecen en el cartel oficial de Turis-Mar c.a.
     const horariosOficiales = {
       JuanGriego: [
         { linea: 'B', hora: '05:45 AM' }, { linea: 'B', hora: '12:45 PM' },
@@ -320,16 +341,53 @@
         
         const claseLetra = item.linea === 'V' ? 'badge-v' : 'badge-b';
         const nombreLinea = item.linea === 'V' ? 'Villarroeles' : 'Brisa de la Sierra';
+        const esAlarmaActiva = alarmaReservada === item.hora;
+        const textoAlarma = esAlarmaActiva ? '🔔 Activada' : '⏰ Avisarme';
+        const claseAlarma = esAlarmaActiva ? 'btn-alarma activada' : 'btn-alarma';
 
         tarjeta.innerHTML = `
           <div class="info-linea">
             <span class="badge-letra ${claseLetra}" title="${nombreLinea}">${item.linea}</span>
-            <div class="hora-texto">🕒 ${item.hora}</div>
+            <div class="hora-texto">${item.hora}</div>
           </div>
-          <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}')">📍 Ver Bus</button>
+          <div class="acciones-horario">
+            <button class="${claseAlarma}" onclick="toggleAlarma('${item.hora}')">${textoAlarma}</button>
+            <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}')">📍 Ver Bus</button>
+          </div>
         `;
         contenedor.appendChild(tarjeta);
       });
+    }
+
+    function toggleAlarma(hora) {
+      if (alarmaReservada === hora) {
+        alarmaReservada = null;
+        alert(`Has cancelado la notificación para las ${hora}.`);
+      } else {
+        alarmaReservada = hora;
+        alert(`🔔 ¡Listo! Te avisaremos y mostraremos una alerta cuando la unidad de las ${hora} esté en ruta.`);
+      }
+      renderizarHorariosDinamicamente();
+    }
+
+    async function verificarNotificacionesAutomaticas() {
+      if (!alarmaReservada) return;
+
+      const { data: ubicaciones } = await clienteSupabase
+        .from('ubicaciones_tiempo_real')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(1);
+
+      if (ubicaciones && ubicaciones.length > 0) {
+        const bus = ubicaciones[0];
+        // Si el chofer indicó que salió para la hora reservada por el usuario
+        if (bus.horario_salida === alarmaReservada && bus.estado_unidad === 'SALIO') {
+          alert(`🚨 ¡ATENCIÓN USUARIO!\n\nLa unidad #${bus.id_bus} asignada al horario de las ${alarmaReservada} YA SALIÓ en ruta.`);
+          alarmaReservada = null; // Se dispara una sola vez y se limpia
+          renderizarHorariosDinamicamente();
+        }
+      }
     }
 
     async function rastrearUnidad(hora) {
@@ -340,7 +398,7 @@
         .limit(1);
 
       if (!ubicaciones || ubicaciones.length === 0) {
-        alert(`La unidad de las ${hora} aún no ha encendido el GPS.`);
+        alert(`La unidad de las ${hora} aún no ha encendido el GPS (Aún no ha salido).`);
         return;
       }
 
@@ -355,11 +413,15 @@
       marcadorBus.bindPopup(`
         <div style="color:#111; text-align:center;">
           <b>🚌 Bus en Vivo (${hora})</b><br>
+          <b>Unidad:</b> #${bus.id_bus}<br>
           <b>Velocidad:</b> ${bus.velocidad || 0} km/h
           ${imagenHTML}
         </div>
       `).openPopup();
     }
+
+    // Comprueba cada 15 segundos si la unidad de la alarma ya salió
+    setInterval(verificarNotificacionesAutomaticas, 15000);
 
     enfocarUbicacion('JuanGriego');
   </script>
