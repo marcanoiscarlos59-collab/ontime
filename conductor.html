@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OnTime - Ruta 201 (Juan Griego / Cesáreo Armas)</title>
+  <title>OnTime - Panel del Chofer</title>
 
-  <!-- Leaflet CSS/JS y Supabase -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -19,334 +17,155 @@
     }
 
     body {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
       background-color: #0A0E17;
       color: #F1F5F9;
-    }
-
-    header {
-      background-color: #111827;
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid #8B5CF6;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    }
-
-    .header-izquierda {
+      padding: 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      min-height: 100vh;
     }
 
-    header h1 {
-      font-size: 1.4rem;
-      background: linear-gradient(90deg, #A855F7, #38BDF8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      font-weight: 800;
-    }
-
-    /* Estilo del "Semáforo" indicador en vivo */
-    .semaforo-vivo {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid #10B981;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      color: #34D399;
-      font-weight: bold;
-    }
-
-    .punto-led {
-      width: 8px;
-      height: 8px;
-      background-color: #10B981;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #10B981;
-      animation: parpadear 1.5s infinite;
-    }
-
-    @keyframes parpadear {
-      0% { opacity: 1; }
-      50% { opacity: 0.4; }
-      100% { opacity: 1; }
-    }
-
-    .badge-linea {
-      background: rgba(139, 92, 246, 0.2);
-      border: 1px solid #8B5CF6;
-      color: #C084FC;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    #contenedor-principal {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    #panel-lateral {
-      width: 390px;
-      background-color: #0F172A;
-      border-right: 1px solid #1E293B;
-      padding: 18px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    #mapa {
-      flex: 1;
-      height: 100%;
-    }
-
-    .seccion-titulo {
-      font-size: 0.95rem;
-      color: #94A3B8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
-      font-weight: 700;
-    }
-
-    .selector-origen {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .btn-origen {
-      flex: 1;
-      padding: 10px;
-      background: #1E293B;
-      border: 1px solid #334155;
-      color: #94A3B8;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
+    .card {
+      background: #111827;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #1E293B;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       text-align: center;
     }
 
-    .btn-origen.activo {
-      background: #8B5CF6;
-      color: white;
-      border-color: #A855F7;
-      box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
-    }
-
-    .tarjeta-horario {
-      background: #1E293B;
-      padding: 12px 14px;
-      border-radius: 10px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border: 1px solid #334155;
-    }
-
-    .hora-texto {
-      font-size: 1.15rem;
+    h1 {
+      color: #38BDF8;
+      font-size: 1.5rem;
+      margin-bottom: 6px;
       font-weight: 800;
-      color: #F8FAFC;
     }
 
-    .tag-bus {
-      font-size: 0.72rem;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-weight: bold;
-      text-transform: uppercase;
+    p {
+      color: #94A3B8;
+      font-size: 0.85rem;
+      margin-bottom: 20px;
     }
 
-    .villarroeles {
-      background: rgba(168, 85, 247, 0.2);
-      color: #E9D5FF;
-      border: 1px solid #A855F7;
+    .campo {
+      margin-bottom: 16px;
+      text-align: left;
     }
 
-    .brisa {
-      background: rgba(56, 189, 248, 0.2);
-      color: #BAE6FD;
-      border: 1px solid #38BDF8;
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #94A3B8;
+      margin-bottom: 6px;
+      font-weight: 600;
     }
 
-    .btn-ver-bus {
-      background: #0284C7;
+    input, select {
+      width: 100%;
+      padding: 12px;
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 8px;
       color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      cursor: pointer;
+      font-size: 1rem;
+      outline: none;
     }
 
-    .btn-ver-bus:hover {
-      background: #0EA5E9;
+    input:focus, select:focus {
+      border-color: #38BDF8;
+    }
+
+    .vista-previa {
+      width: 100%;
+      height: 140px;
+      border-radius: 8px;
+      border: 2px dashed #334155;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #0F172A;
+      color: #64748B;
+      font-size: 0.85rem;
+    }
+
+    .vista-previa img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn-start {
+      background: #16A34A;
+      color: white;
+    }
+
+    .btn-stop {
+      background: #DC2626;
+      color: white;
+      display: none;
+    }
+
+    .estado {
+      margin-top: 20px;
+      font-size: 0.85rem;
+      padding: 12px;
+      border-radius: 8px;
+      background: #1E293B;
+      border: 1px solid #334155;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="header-izquierda">
-      <h1>🚏 OnTime</h1>
-      <div class="semaforo-vivo">
-        <div class="punto-led"></div>
-        <span>EN VIVO</span>
-      </div>
+  <div class="card">
+    <h1>🚌 OnTime - Panel Chofer</h1>
+    <p>Ruta 201 | Turis-Mar c.a.</p>
+
+    <!-- Selector de Unidad -->
+    <div class="campo">
+      <label>Unidad / Tipo de Bus:</label>
+      <select id="tipoBus">
+        <option value="Villarroeles">Villarroeles (V)</option>
+        <option value="Brisa de la Sierra">Brisa de la Sierra (B)</option>
+      </select>
     </div>
-    <div class="badge-linea">Ruta 201 | Turis-Mar c.a.</div>
-  </header>
 
-  <div id="contenedor-principal">
-    <div id="panel-lateral">
-      <div>
-        <h2 class="seccion-titulo">⏰ Horarios de Salida</h2>
-        <div class="selector-origen">
-          <button class="btn-origen activo" id="btn-jg" onclick="enfocarUbicacion('JuanGriego')">🚌 Juan Griego</button>
-          <button class="btn-origen" id="btn-ca" onclick="enfocarUbicacion('CesareoArmas')">📍 Cesáreo Armas</button>
-        </div>
-        <div id="lista-horarios">Cargando horarios...</div>
-      </div>
+    <!-- ID o Número de Unidad -->
+    <div class="campo">
+      <label>Número de Unidad (ID Bus):</label>
+      <input type="number" id="idBus" placeholder="Ej: 101" value="101">
     </div>
-    <div id="mapa"></div>
-  </div>
 
-  <script>
-    const SUPABASE_URL = 'https://ykwhdyvtlhjvusyjqlgb.supabase.co'; 
-    const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
-    const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- Cargar Foto de la Unidad -->
+    <div class="campo">
+      <label>Foto de la Unidad:</label>
+      <input type="file" id="fotoUnidad" accept="image/*" onchange="mostrarVistaPrevia(event)">
+      <div class="vista-previa" id="boxPrevia">Sin foto seleccionada</div>
+    </div>
 
-    const COORDS_JUAN_GRIEGO = [11.0825, -63.9664];
-    const COORDS_CESAREO_ARMAS = [10.9635, -63.8560];
+    <!-- PIN de Autorización -->
+    <div class="campo">
+      <label>Clave PIN de Autorización:</label>
+      <input type="password" id="pinAcceso" placeholder="Ingresa PIN de chofer">
+    </div>
 
-    const mapa = L.map('mapa').setView([11.0333, -63.8800], 12);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(mapa);
-
-    let marcadorPunto = null;
-    let marcadorBus = null;
-
-    const horariosLocales = {
-      JuanGriego: [
-        { hora: '05:45', tipo: 'Brisa de la Sierra' },
-        { hora: '06:15', tipo: 'Brisa de la Sierra' },
-        { hora: '06:25', tipo: 'Villarroeles' },
-        { hora: '06:45', tipo: 'Villarroeles' },
-        { hora: '07:15', tipo: 'Brisa de la Sierra' },
-        { hora: '07:45', tipo: 'Villarroeles' },
-        { hora: '08:15', tipo: 'Villarroeles' },
-        { hora: '09:15', tipo: 'Brisa de la Sierra' },
-        { hora: '10:15', tipo: 'Villarroeles' },
-        { hora: '11:15', tipo: 'Brisa de la Sierra' },
-        { hora: '12:15', tipo: 'Villarroeles' }
-      ],
-      CesareoArmas: [
-        { hora: '06:30', tipo: 'Villarroeles' },
-        { hora: '07:15', tipo: 'Brisa de la Sierra' },
-        { hora: '07:45', tipo: 'Villarroeles' },
-        { hora: '08:15', tipo: 'Brisa de la Sierra' },
-        { hora: '09:15', tipo: 'Brisa de la Sierra' },
-        { hora: '10:15', tipo: 'Brisa de la Sierra' },
-        { hora: '11:15', tipo: 'Villarroeles' },
-        { hora: '12:15', tipo: 'Brisa de la Sierra' },
-        { hora: '13:15', tipo: 'Brisa de la Sierra' },
-        { hora: '14:15', tipo: 'Villarroeles' }
-      ]
-    };
-
-    function enfocarUbicacion(destino) {
-      document.querySelectorAll('.btn-origen').forEach(b => b.classList.remove('activo'));
-
-      if(destino === 'JuanGriego') {
-        document.getElementById('btn-jg').classList.add('activo');
-        mapa.flyTo(COORDS_JUAN_GRIEGO, 16, { duration: 1.5 });
-        mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal de Juan Griego");
-      } else {
-        document.getElementById('btn-ca').classList.add('activo');
-        mapa.flyTo(COORDS_CESAREO_ARMAS, 16, { duration: 1.5 });
-        mostrarPin(COORDS_CESAREO_ARMAS, "📍 Av. Cesáreo Armas");
-      }
-
-      renderizarHorarios(horariosLocales[destino]);
-    }
-
-    function mostrarPin(coords, texto) {
-      if (marcadorPunto) mapa.now ? mapa.removeLayer(marcadorPunto) : mapa.removeLayer(marcadorPunto);
-      if (marcadorPunto) mapa.removeLayer(marcadorPunto);
-      marcadorPunto = L.marker(coords).addTo(mapa);
-      marcadorPunto.bindPopup(`<b style="font-size:1rem;">${texto}</b>`).openPopup();
-    }
-
-    function renderizarHorarios(lista) {
-      const contenedor = document.getElementById('lista-horarios');
-      contenedor.innerHTML = '';
-
-      lista.forEach(item => {
-        const esVillarroeles = item.tipo.includes('Villarroeles');
-        const claseTag = esVillarroeles ? 'villarroeles' : 'brisa';
-        const labelTipo = esVillarroeles ? 'V: Villarroeles' : 'B: Brisa de la Sierra';
-
-        const tarjeta = document.createElement('div');
-        tarjeta.className = 'tarjeta-horario';
-        tarjeta.innerHTML = `
-          <div>
-            <div class="hora-texto">🕒 ${item.hora}</div>
-            <span class="tag-bus ${claseTag}">${labelTipo}</span>
-          </div>
-          <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}', '${labelTipo}')">📍 Ver Bus</button>
-        `;
-        contenedor.appendChild(tarjeta);
-      });
-    }
-
-    async function rastrearUnidad(hora, tipoBus) {
-      const { data: ubicaciones } = await clienteSupabase
-        .from('ubicaciones_tiempo_real')
-        .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(1);
-
-      if (!ubicaciones || ubicaciones.length === 0) {
-        alert(`La unidad de las ${hora} (${tipoBus}) aún no ha encendido el GPS.`);
-        return;
-      }
-
-      const bus = ubicaciones[0];
-      mapa.flyTo([bus.latitud, bus.longitud], 16, { duration: 1.5 });
-
-      if (marcadorBus) mapa.removeLayer(marcadorBus);
-
-      marcadorBus = L.marker([bus.latitud, bus.longitud]).addTo(mapa);
-      marcadorBus.bindPopup(`
-        <div style="color:#111;">
-          <b>🚌 Ruta 201 en Vivo</b><br>
-          <b>Salida:</b> ${hora}<br>
-          <b>Unidad:</b> ${tipoBus}<br>
-          <b>Velocidad:</b> ${bus.velocidad || 0} km/h
-        </div>
-      `).openPopup();
-    }
-
-    enfocarUbicacion('JuanGriego');
-  </script>
-</body>
-</html>
+    <!-- Botones de Acción -->
+    <button id="btnIniciar" class="btn-start" onclick="validarYIniciar()">📡 Iniciar Transmisión GPS</button>
+    <button id="btnDetener" class="btn-stop" onclick="det
