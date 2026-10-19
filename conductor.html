@@ -35,6 +35,16 @@
       max-width: 380px;
       border: 1px solid #1E293B;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    .btn-volver {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: #38BDF8;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: bold;
     }
 
     h1 {
@@ -132,6 +142,8 @@
 <body>
 
   <div class="card">
+    <a href="index.html" class="btn-volver">⬅️ Volver al Mapa</a>
+
     <h1>🚌 OnTime - Chofer</h1>
     <p>Ruta 201 | Turis-Mar c.a.</p>
 
@@ -172,7 +184,7 @@
 
     const PIN_AUTORIZADO = "2010";[cite: 5]
     let watchId = null;
-    let fotoEnBase64 = null; // Inicia vacía por si no la suben
+    let fotoEnBase64 = null;
 
     function convertirFoto(event) {
       const archivo = event.target.files[0];
@@ -216,7 +228,6 @@
           const lng = posicion.coords.longitude;
           const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0;
 
-          // Envía los datos. Si no hay foto, envía null y no da error.
           await clienteSupabase
             .from('ubicaciones_tiempo_real')
             .insert([{
