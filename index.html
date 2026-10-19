@@ -259,9 +259,9 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Coordenadas reales corregidas
-    const COORDS_JUAN_GRIEGO = [11.0825, -63.9664];
-    const COORDS_LA_VELA = [10.9795, -63.8209]; // C.C. La Vela (Av. Bolívar)
+    // Coordenadas exactas actualizadas
+    const COORDS_JUAN_GRIEGO = [11.0910, -63.9685]; // Terminal / Zona de Salida Juan Griego
+    const COORDS_LA_VELA     = [10.9795, -63.8209]; // C.C. La Vela (Av. Bolívar)
 
     const mapa = L.map('mapa', { zoomControl: false }).setView(COORDS_JUAN_GRIEGO, 15);
 
@@ -276,7 +276,7 @@
     let marcadorBus = null;
     let destinoActual = 'JuanGriego';
     let unidadesActivas = [];
-    let alarmaReservada = null; // Guarda el horario seleccionado para notificar al usuario
+    let alarmaReservada = null;
 
     const iconoParada = L.divIcon({
       html: '<div class="icono-marcador">🚏</div>',
@@ -331,7 +331,7 @@
       if (destino === 'JuanGriego') {
         document.getElementById('btn-jg').classList.add('activo');
         mapa.flyTo(COORDS_JUAN_GRIEGO, 16, { duration: 1.2 });
-        mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal Juan Griego");
+        mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal / Salida Juan Griego");
       } else {
         document.getElementById('btn-vela').classList.add('activo');
         mapa.flyTo(COORDS_LA_VELA, 16, { duration: 1.2 });
@@ -423,7 +423,7 @@
 
       if (busEnRuta) {
         alert(`🚨 ¡ALERTA DE BUS EN CAMINO!\n\nLa unidad #${busEnRuta.id_bus} correspondiente a la hora ${alarmaReservada} ya inició su transmisión GPS y va en vía. ¡Atento a tu parada!`);
-        alarmaReservada = null; // Se dispara una vez y se desactiva
+        alarmaReservada = null;
         renderizarHorariosNormales();
       }
     }
