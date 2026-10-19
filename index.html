@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OnTime - Transporte en Tiempo Real</title>
+  <title>OnTime - Transporte Isla de Margarita</title>
 
-  <!-- Hojas de estilo e librerías de Leaflet (Mapas) y Supabase JS -->
+  <!-- Hojas de estilo y librerías de Leaflet (Mapas) y Supabase JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -25,7 +25,7 @@
     }
 
     header {
-      background-color: #1E293B;
+      background-color: #0F172A;
       color: white;
       padding: 15px 20px;
       display: flex;
@@ -35,21 +35,25 @@
     }
 
     header h1 {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       color: #38BDF8;
     }
 
     #contenedor-principal {
       display: flex;
       flex: 1;
+      overflow: hidden;
     }
 
     #panel-lateral {
-      width: 320px;
+      width: 360px;
       background-color: #F8FAFC;
       border-right: 1px solid #E2E8F0;
       padding: 20px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
     #mapa {
@@ -57,10 +61,18 @@
       height: 100%;
     }
 
+    .seccion-titulo {
+      font-size: 1.1rem;
+      color: #0F172A;
+      border-bottom: 2px solid #0EA5E9;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+
     .tarjeta-parada {
       background: white;
-      padding: 12px;
-      margin-bottom: 10px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
       border-radius: 8px;
       border-left: 4px solid #0EA5E9;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -69,32 +81,71 @@
     }
 
     .tarjeta-parada:hover {
-      background: #F1F5F9;
+      background: #E0F2FE;
     }
 
     .tarjeta-parada h3 {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: #0F172A;
     }
 
     .tarjeta-parada p {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: #64748B;
+    }
+
+    /* Estilos para la Tabla de Horarios */
+    table.tabla-horarios {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-size: 0.85rem;
+    }
+
+    table.tabla-horarios th {
+      background-color: #0EA5E9;
+      color: white;
+      text-align: left;
+      padding: 8px;
+    }
+
+    table.tabla-horarios td {
+      padding: 8px;
+      border-bottom: 1px solid #E2E8F0;
+      color: #334155;
+    }
+
+    table.tabla-horarios tr:nth-child(even) {
+      background-color: #F1F5F9;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>🚏 OnTime - Sistema de Transporte</h1>
+    <h1>🚏 OnTime - Isla de Margarita</h1>
     <span>Estado: <strong style="color: #4ADE80;">En Vivo</strong></span>
   </header>
 
   <div id="contenedor-principal">
-    <!-- Panel Lateral con lista de paradas -->
+    <!-- Panel Lateral -->
     <div id="panel-lateral">
-      <h2 style="margin-bottom: 15px; font-size: 1.2rem;">Paradas Disponibles</h2>
-      <div id="lista-paradas">Cargando paradas...</div>
+      
+      <!-- Lista de Paradas -->
+      <div>
+        <h2 class="seccion-titulo">📍 Paradas Principales</h2>
+        <div id="lista-paradas">Cargando paradas...</div>
+      </div>
+
+      <!-- Tabla de Horarios -->
+      <div>
+        <h2 class="seccion-titulo">⏰ Horarios de Salida</h2>
+        <div id="contenedor-horarios">Cargando horarios...</div>
+      </div>
+
     </div>
 
     <!-- Contenedor del Mapa -->
@@ -103,29 +154,26 @@
 
   <script>
     // ========================================================
-    // 1. CONFIGURACIÓN CON TU URL DE PROYECTO
+    // 1. CONFIGURACIÓN SUPABASE
     // ========================================================
     const SUPABASE_URL = 'https://ykwhdyvtlhjvusyjqlgb.supabase.co'; 
-    
-    // Pega tu clave "anon" pública aquí (la encuentras en Settings -> API Keys)
-    const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfXOhQ_xGAinWWu';
+    const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin'; // Tu clave publicable
 
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ========================================================
-    // 2. INICIALIZAR EL MAPA (Centro inicial)
+    // 2. INICIALIZAR EL MAPA CENTRADO EN LA ISLA DE MARGARITA
     // ========================================================
-    // Puedes ajustar [10.4806, -66.9036] por la latitud y longitud de tu ciudad
-    const mapa = L.map('mapa').setView([10.4806, -66.9036], 13);
+    // Coordenadas centrales de la Isla de Margarita: [11.0000, -63.9000]
+    const mapa = L.map('mapa').setView([11.0000, -63.9000], 11);
 
-    // Capa de mapa interactivo gratuito (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
     }).addTo(mapa);
 
     // ========================================================
-    // 3. OBTENER Y MOSTRAR PARADAS DESDE SUPABASE
+    // 3. OBTENER Y MOSTRAR PARADAS EN MARGARITA
     // ========================================================
     async function cargarParadas() {
       const { data: paradas, error } = await clienteSupabase
@@ -135,25 +183,23 @@
       const contenedorLista = document.getElementById('lista-paradas');
 
       if (error) {
-        console.error('Error al cargar paradas:', error);
-        contenedorLista.innerHTML = '<p style="color:red;">Error al conectar con la base de datos.</p>';
+        contenedorLista.innerHTML = '<p style="color:red;">Error al cargar paradas.</p>';
         return;
       }
 
       if (!paradas || paradas.length === 0) {
-        contenedorLista.innerHTML = '<p>No hay paradas registradas aún en la base de datos.</p>';
+        contenedorLista.innerHTML = '<p style="font-size: 0.85rem;">No hay paradas registradas aún.</p>';
         return;
       }
 
       contenedorLista.innerHTML = '';
 
-      // Recorrer cada parada y agregar un marcador al mapa
       paradas.forEach(parada => {
-        // Marcador en el mapa
+        // Marcador en la isla
         const marcador = L.marker([parada.latitud, parada.longitud]).addTo(mapa);
-        marcador.bindPopup(`<b>${parada.nombre_parada}</b><br>ID Parada: ${parada.id}`);
+        marcador.bindPopup(`<b>${parada.nombre_parada}</b>`);
 
-        // Tarjeta en el panel lateral
+        // Tarjeta lateral
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-parada';
         tarjeta.innerHTML = `
@@ -161,9 +207,8 @@
           <p>Lat: ${parada.latitud} | Lng: ${parada.longitud}</p>
         `;
         
-        // Centrar mapa al hacer clic en la tarjeta de la lista
         tarjeta.addEventListener('click', () => {
-          mapa.flyTo([parada.latitud, parada.longitud], 16);
+          mapa.flyTo([parada.latitud, parada.longitud], 15);
           marcador.openPopup();
         });
 
@@ -172,32 +217,60 @@
     }
 
     // ========================================================
-    // 4. ESCUCHAR ACTUALIZACIONES DE BUSES EN TIEMPO REAL
+    // 4. OBTENER Y MOSTRAR HORARIOS DE SALIDA
     // ========================================================
-    let marcadorBus = null;
+    async function cargarHorarios() {
+      const { data: horarios, error } = await clienteSupabase
+        .from('horarios')
+        .select(`
+          id,
+          dia_semana,
+          hora_salida,
+          observacion,
+          rutas ( nombre_ruta )
+        `)
+        .order('hora_salida', { ascending: true });
 
-    clienteSupabase
-      .channel('bus-movimiento')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'ubicaciones_tiempo_real' 
-      }, payload => {
-        const nuevaUbicacion = payload.new;
-        console.log('¡Ubicación actualizada en tiempo real!', nuevaUbicacion);
+      const contenedor = document.getElementById('contenedor-horarios');
 
-        // Mover o crear el marcador del bus en el mapa
-        if (marcadorBus) {
-          marcadorBus.setLatLng([nuevaUbicacion.latitud, nuevaUbicacion.longitud]);
-        } else {
-          marcadorBus = L.marker([nuevaUbicacion.latitud, nuevaUbicacion.longitud]).addTo(mapa);
-        }
-        marcadorBus.bindPopup(`<b>Bus ID: ${nuevaUbicacion.id_bus}</b><br>Velocidad: ${nuevaUbicacion.velocidad} km/h`).openPopup();
-      })
-      .subscribe();
+      if (error || !horarios || horarios.length === 0) {
+        contenedor.innerHTML = '<p style="font-size:0.85rem;">No hay horarios cargados aún.</p>';
+        return;
+      }
 
-    // Ejecutar carga inicial
+      let html = `
+        <table class="tabla-horarios">
+          <thead>
+            <tr>
+              <th>Ruta</th>
+              <th>Día</th>
+              <th>Salida</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      horarios.forEach(h => {
+        const nombreRuta = h.rutas ? h.rutas.nombre_ruta : 'Ruta general';
+        // Formatear la hora HH:MM
+        const horaFormateada = h.hora_salida.substring(0, 5);
+
+        html += `
+          <tr>
+            <td><strong>${nombreRuta}</strong></td>
+            <td>${h.dia_semana}</td>
+            <td><strong>${horaFormateada}</strong></td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      contenedor.innerHTML = html;
+    }
+
+    // Cargar los datos
     cargarParadas();
+    cargarHorarios();
   </script>
 </body>
 </html>
