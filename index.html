@@ -105,7 +105,7 @@
       border-top-left-radius: 16px;
       border-top-right-radius: 16px;
       border-top: 2px solid #334155;
-      max-height: 45vh;
+      max-height: 50vh;
       display: flex;
       flex-direction: column;
       z-index: 999;
@@ -125,7 +125,19 @@
       padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+    }
+
+    .seccion-lote {
+      font-size: 0.8rem;
+      color: #38BDF8;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-top: 6px;
+      margin-bottom: 2px;
+      letter-spacing: 1px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 4px;
     }
 
     .tarjeta-horario {
@@ -163,10 +175,26 @@
       border: 1px solid #38BDF8;
     }
 
+    .detalle-hora {
+      display: flex;
+      flex-direction: column;
+    }
+
     .hora-texto {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 800;
       color: #F8FAFC;
+    }
+
+    .estado-bus {
+      font-size: 0.7rem;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+
+    .estado-bus.en-ruta {
+      color: #4ADE80;
+      font-weight: bold;
     }
 
     .btn-ver-bus {
@@ -237,6 +265,7 @@
     let marcadorPunto = null;
     let marcadorBus = null;
     let destinoActual = 'JuanGriego';
+    let unidadesActivas = [];
 
     const iconoParada = L.divIcon({
       html: '<div class="icono-marcador">🚏</div>',
@@ -252,35 +281,59 @@
       iconAnchor: [15, 15]
     });
 
+    // Horarios oficiales ordenados y agrupados por bloques (Lotes B y V)
     const horariosOficiales = {
       JuanGriego: [
-        { linea: 'B', hora: '05:45 AM' }, { linea: 'B', hora: '12:45 PM' },
-        { linea: 'B', hora: '06:15 AM' }, { linea: 'V', hora: '01:15 PM' },
-        { linea: 'V', hora: '06:25 AM' }, { linea: 'V', hora: '02:15 PM' },
-        { linea: 'V', hora: '06:45 AM' }, { linea: 'V', hora: '03:15 PM' },
-        { linea: 'B', hora: '07:15 AM' }, { linea: 'V', hora: '04:15 PM' },
-        { linea: 'V', hora: '07:45 AM' }, { linea: 'V', hora: '05:15 PM' },
-        { linea: 'V', hora: '08:15 AM' }, { linea: 'V', hora: '06:15 PM' },
-        { linea: 'V', hora: '08:45 AM' },
-        { linea: 'B', hora: '09:15 AM' }, { linea: 'V', hora: '09:25 AM' },
-        { linea: 'V', hora: '09:45 AM' }, { linea: 'V', hora: '10:15 AM' },
-        { linea: 'V', hora: '10:45 AM' }, { linea: 'B', hora: '11:15 AM' },
-        { linea: 'V', hora: '11:25 AM' }, { linea: 'B', hora: '11:45 AM' },
-        { linea: 'V', hora: '12:15 PM' }
+        { lote: 'Mañana - Lote B (Brisa de la Sierra)', linea: 'B', hora: '05:45 AM' },
+        { lote: 'Mañana - Lote B (Brisa de la Sierra)', linea: 'B', hora: '06:15 AM' },
+        { lote: 'Mañana - Lote V (Villarroeles)', linea: 'V', hora: '06:25 AM' },
+        { lote: 'Mañana - Lote V (Villarroeles)', linea: 'V', hora: '06:45 AM' },
+        { lote: 'Mañana - Lote B (Brisa de la Sierra)', linea: 'B', hora: '07:15 AM' },
+        { lote: 'Mañana - Lote V (Villarroeles)', linea: 'V', hora: '07:45 AM' },
+        { lote: 'Mañana - Lote V (Villarroeles)', linea: 'V', hora: '08:15 AM' },
+        { lote: 'Mañana - Lote V (Villarroeles)', linea: 'V', hora: '08:45 AM' },
+        { lote: 'Mañana - Lote B / V', linea: 'B', hora: '09:15 AM' },
+        { lote: 'Mañana - Lote B / V', linea: 'V', hora: '09:25 AM' },
+        { lote: 'Mañana - Lote B / V', linea: 'V', hora: '09:45 AM' },
+        { lote: 'Mañana - Lote B / V', linea: 'V', hora: '10:15 AM' },
+        { lote: 'Mañana - Lote B / V', linea: 'V', hora: '10:45 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'B', hora: '11:15 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '11:25 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'B', hora: '11:45 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '12:15 PM' },
+        { lote: 'Mediodía / Tarde', linea: 'B', hora: '12:45 PM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '01:15 PM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '02:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '03:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '04:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '05:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '06:15 PM' }
       ],
       LaVela: [
-        { linea: 'V', hora: '06:30 AM' }, { linea: 'B', hora: '01:15 PM' },
-        { linea: 'B', hora: '07:15 AM' }, { linea: 'V', hora: '02:15 PM' },
-        { linea: 'V', hora: '07:45 AM' }, { linea: 'B', hora: '03:15 PM' },
-        { linea: 'B', hora: '08:15 AM' }, { linea: 'V', hora: '04:15 PM' },
-        { linea: 'V', hora: '08:45 AM' }, { linea: 'B', hora: '04:45 PM' },
-        { linea: 'B', hora: '09:15 AM' }, { linea: 'B', hora: '05:15 PM' },
-        { linea: 'V', hora: '09:45 AM' }, { linea: 'V', hora: '05:45 PM' },
-        { linea: 'B', hora: '10:15 AM' }, { linea: 'V', hora: '06:15 PM' },
-        { linea: 'V', hora: '10:45 AM' }, { linea: 'V', hora: '06:45 PM' },
-        { linea: 'B', hora: '11:15 AM' }, { linea: 'V', hora: '07:15 PM' },
-        { linea: 'V', hora: '11:45 AM' }, { linea: 'V', hora: '08:15 PM' },
-        { linea: 'B', hora: '12:15 PM' }, { linea: 'V', hora: '12:45 PM' }
+        { lote: 'Mañana - Lote V / B', linea: 'V', hora: '06:30 AM' },
+        { lote: 'Mañana - Lote V / B', linea: 'B', hora: '07:15 AM' },
+        { lote: 'Mañana - Lote V / B', linea: 'V', hora: '07:45 AM' },
+        { lote: 'Mañana - Lote V / B', linea: 'B', hora: '08:15 AM' },
+        { lote: 'Mañana - Lote V / B', linea: 'V', hora: '08:45 AM' },
+        { lote: 'Mañana - Lote V / B', linea: 'B', hora: '09:15 AM' },
+        { lote: 'Mañana - Lote V / B', linea: 'V', hora: '09:45 AM' },
+        { lote: 'Mañana - Lote V / B', linea: 'B', hora: '10:15 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '10:45 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'B', hora: '11:15 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '11:45 AM' },
+        { lote: 'Mediodía / Tarde', linea: 'B', hora: '12:15 PM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '12:45 PM' },
+        { lote: 'Mediodía / Tarde', linea: 'B', hora: '01:15 PM' },
+        { lote: 'Mediodía / Tarde', linea: 'V', hora: '02:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'B', hora: '03:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '04:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'B', hora: '04:45 PM' },
+        { lote: 'Tarde / Noche', linea: 'B', hora: '05:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '05:45 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '06:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '06:45 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '07:15 PM' },
+        { lote: 'Tarde / Noche', linea: 'V', hora: '08:15 PM' }
       ]
     };
 
@@ -298,7 +351,7 @@
         mostrarPin(COORDS_LA_VELA, "🛍️ CC La Vela");
       }
 
-      renderizarHorariosDinamicamente();
+      sincronizarYRenderizar();
     }
 
     function mostrarPin(coords, texto) {
@@ -307,23 +360,54 @@
       marcadorPunto.bindPopup(`<b style="color:#111;">${texto}</b>`).openPopup();
     }
 
-    function renderizarHorariosDinamicamente() {
+    async function sincronizarYRenderizar() {
+      // Consultar unidades activas en Supabase
+      const { data: ubicaciones } = await clienteSupabase
+        .from('ubicaciones_tiempo_real')
+        .select('*');
+
+      unidadesActivas = ubicaciones || [];
+      renderizarHorariosPorLotes();
+    }
+
+    function renderizarHorariosPorLotes() {
       const contenedor = document.getElementById('lista-horarios');
       contenedor.innerHTML = '';
 
       const lista = horariosOficiales[destinoActual];
+      let ultimoLote = '';
 
       lista.forEach(item => {
+        // Crear título de sección si cambia el lote
+        if (item.lote !== ultimoLote) {
+          ultimoLote = item.lote;
+          const tituloLote = document.createElement('div');
+          tituloLote.className = 'seccion-lote';
+          tituloLote.innerText = ultimoLote;
+          contenedor.appendChild(tituloLote);
+        }
+
+        // Buscar si este horario tiene una unidad activa transmitiendo
+        const busActivo = unidadesActivas.find(b => b.horario_salida === item.hora && b.estado_unidad === 'SALIO');
+
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-horario';
         
         const claseLetra = item.linea === 'V' ? 'badge-v' : 'badge-b';
         const nombreLinea = item.linea === 'V' ? 'Villarroeles' : 'Brisa de la Sierra';
 
+        let textoEstado = '<span class="estado-bus">⏳ Aún no ha salido</span>';
+        if (busActivo) {
+          textoEstado = `<span class="estado-bus en-ruta">🟢 En vía (Unidad #${busActivo.id_bus})</span>`;
+        }
+
         tarjeta.innerHTML = `
           <div class="info-linea">
             <span class="badge-letra ${claseLetra}" title="${nombreLinea}">${item.linea}</span>
-            <div class="hora-texto">${item.hora}</div>
+            <div class="detalle-hora">
+              <div class="hora-texto">${item.hora}</div>
+              ${textoEstado}
+            </div>
           </div>
           <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}')">📍 Ver Bus</button>
         `;
@@ -331,38 +415,50 @@
       });
     }
 
-    // Rastrear la posicion mas reciente registrada en Supabase
     async function rastrearUnidad(horaSeleccionada) {
-      const { data: ubicaciones, error } = await clienteSupabase
-        .from('ubicaciones_tiempo_real')
-        .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(1);
+      const busEncontrado = unidadesActivas.find(b => b.horario_salida === horaSeleccionada);
 
-      if (error || !ubicaciones || ubicaciones.length === 0) {
-        alert(`No hay ninguna unidad transmitiendo GPS en este momento para la hora ${horaSeleccionada}.`);
+      if (!busEncontrado) {
+        // Si no se encuentra por horario exacto, tomar la más reciente en general
+        const { data: ultimos } = await clienteSupabase
+          .from('ubicaciones_tiempo_real')
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .limit(1);
+
+        if (!ultimos || ultimos.length === 0) {
+          alert(`La unidad de las ${horaSeleccionada} aún no ha encendido el GPS en la vía.`);
+          return;
+        }
+
+        ubicarEnMapa(ultimos[0], horaSeleccionada);
         return;
       }
 
-      const bus = ubicaciones[0];
+      ubicarEnMapa(busEncontrado, horaSeleccionada);
+    }
 
-      // Mover el mapa hacia las coordenadas exactas del chofer
+    function ubicarEnMapa(bus, horaSeleccionada) {
       mapa.flyTo([bus.latitud, bus.longitud], 16, { duration: 1.2 });
 
       if (marcadorBus) mapa.removeLayer(marcadorBus);
 
       let imagenHTML = bus.foto_url ? `<img src="${bus.foto_url}" class="img-bus-popup" alt="Unidad">` : '';
+      let horarioBus = bus.horario_salida || horaSeleccionada;
 
       marcadorBus = L.marker([bus.latitud, bus.longitud], { icon: iconoBusLive }).addTo(mapa);
       marcadorBus.bindPopup(`
         <div style="color:#111; text-align:center;">
-          <b>🚌 Bus en Vivo (${bus.horario_salida || horaSeleccionada})</b><br>
+          <b>🚌 Bus en Vivo (${horarioBus})</b><br>
           <b>Unidad ID:</b> #${bus.id_bus}<br>
           <b>Velocidad:</b> ${bus.velocidad || 0} km/h
           ${imagenHTML}
         </div>
       `).openPopup();
     }
+
+    // Actualizar la lista automáticamente cada 15 segundos para reflejar los estados en vivo
+    setInterval(sincronizarYRenderizar, 15000);
 
     enfocarUbicacion('JuanGriego');
   </script>
