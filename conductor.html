@@ -84,13 +84,9 @@
       outline: none;
     }
 
-    input:focus, select:focus {
-      border-color: #38BDF8;
-    }
-
     .vista-previa {
       width: 100%;
-      height: 110px;
+      height: 100px;
       border-radius: 8px;
       border: 2px dashed #334155;
       margin-top: 6px;
@@ -123,10 +119,6 @@
     .btn-start {
       background: #16A34A;
       color: white;
-    }
-
-    .btn-start:hover {
-      background: #15803D;
     }
 
     .btn-stop {
@@ -168,7 +160,6 @@
       <input type="number" id="idBus" placeholder="Ej: 101" value="101">
     </div>
 
-    <!-- Selector de Horario de Salida -->
     <div class="campo">
       <label>Horario de Salida Asignado:</label>
       <select id="horarioSalida">
@@ -210,7 +201,7 @@
       <input type="password" id="pinAcceso" placeholder="Ingresa PIN (2010)" oninput="verificarPinEnTiempoReal()">
     </div>
 
-    <button id="btnIniciar" class="btn-start" onclick="validarYIniciar()">📡 Iniciar Transmisión y Notificar Salida</button>
+    <button id="btnIniciar" class="btn-start" onclick="validarYIniciar()">📡 Iniciar Transmisión GPS</button>
     <button id="btnDetener" class="btn-stop" onclick="detenerGPS()">🛑 Finalizar Recorrido</button>
 
     <div class="estado" id="estadoTxt">Estado: Ingrese su PIN de chofer para comenzar.</div>
@@ -221,7 +212,7 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const PIN_AUTORIZADO = "2010";
+    const PIN_AUTORIZADO = "2010";[cite: 5]
     let watchId = null;
     let fotoEnBase64 = null;
 
@@ -245,34 +236,34 @@
       const pinIngresado = document.getElementById('pinAcceso').value;
       const estadoDiv = document.getElementById('estadoTxt');
 
-      if (pinIngresado.length === 0) {
+      if (pinIngresado === PIN_AUTORIZADO) {
+        estadoDiv.innerHTML = '<span style="color:#4ADE80;">✅ PIN Correcto. Listo para transmitir.</span>';
+        estadoDiv.style.borderColor = '#16A34A';
+      } else if (pinIngresado.length > 0) {
+        estadoDiv.innerHTML = '<span style="color:#EF4444;">❌ PIN Incorrecto (Usar 2010)</span>';
+        estadoDiv.style.borderColor = '#DC2626';
+      } else {
         estadoDiv.innerHTML = 'Estado: Ingrese su PIN de chofer para comenzar.';
         estadoDiv.style.borderColor = '#334155';
-      } else if (pinIngresado === PIN_AUTORIZADO) {
-        estadoDiv.innerHTML = '<span style="color:#4ADE80;">✅ PIN Correcto. Listo para salir.</span>';
-        estadoDiv.style.borderColor = '#16A34A';
-      } else {
-        estadoDiv.innerHTML = '<span style="color:#EF4444;">❌ PIN Incorrecto (Debe ser 2010)</span>';
-        estadoDiv.style.borderColor = '#DC2626';
       }
     }
 
-    async function validarYIniciar() {
+    function validarYIniciar() {
       const pinIngresado = document.getElementById('pinAcceso').value;
       const idBus = document.getElementById('idBus').value;
 
       if (pinIngresado !== PIN_AUTORIZADO) {
-        alert("PIN incorrecto. Por favor verifique la clave (2010).");
+        alert("⚠️ El PIN ingresado es incorrecto. Debe ser 2010.");
         return;
       }
 
       if (!idBus) {
-        alert("Por favor ingrese el número de la unidad.");
+        alert("⚠️ Ingrese el número de unidad.");
         return;
       }
 
       if (!navigator.geolocation) {
-        alert("Su dispositivo no soporta geolocalización GPS.");
+        alert("⚠️ Su teléfono no tiene soporte para señal GPS.");
         return;
       }
 
@@ -281,8 +272,9 @@
 
       document.getElementById('btnIniciar').style.display = 'none';
       document.getElementById('btnDetener').style.display = 'block';
-      document.getElementById('estadoTxt').innerHTML = `<span style="color:#38BDF8;">🛰️ Registrando salida (${horarioSeleccionado}) y activando GPS...</span>`;
+      document.getElementById('estadoTxt').innerHTML = '<span style="color:#38BDF8;">📡 Solicitando permisos de GPS a su teléfono...</span>';
 
+      // Solicitar posicionamiento GPS continuo al navegador
       watchId = navigator.geolocation.watchPosition(
         async (posicion) => {
           const lat = posicion.coords.latitude;
@@ -290,31 +282,33 @@
           const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0;
 
           document.getElementById('estadoTxt').innerHTML = `
-            <span style="color:#4ADE80; font-weight:bold;">🟢 Unidad #${idBus} en Ruta (${horarioSeleccionado})</span><br>
-            <span style="font-size:0.75rem; color:#94A3B8;">Velocidad: ${vel} km/h | Transmitiendo en vivo</span>
+            <span style="color:#4ADE80; font-weight:bold;">🟢 TRANSMITIENDO EN VIVO</span><br>
+            <span style="font-size:0.75rem; color:#94A3B8;">Lat: ${lat.toFixed(4)} | Lng: ${lng.toFixed(4)} | ${vel} km/h</span>
           `;
 
-          // Enviamos a Supabase incluyendo la hora de salida seleccionada por el chofer
+          // Guardar posición en la tabla de Supabase
           const { error } = await clienteSupabase
             .from('ubicaciones_tiempo_real')
-            .upsert([{
+            .upsert({
               id_bus: parseInt(idBus),
               latitud: lat,
               longitud: lng,
               velocidad: parseFloat(vel),
               foto_url: fotoEnBase64 || null,
               horario_salida: horarioSeleccionado,
-              estado_unidad: 'SALIO'
-            }], { onConflict: 'id_bus' });
+              estado_unidad: 'SALIO',
+              timestamp: new Date().toISOString()
+            }, { onConflict: 'id_bus' });
 
-          if (error) {
-            console.error("Error al sincronizar con Supabase:", error);
-          }
+          if (error) console.error("Error enviando datos:", error);
         },
         (error) => {
-          document.getElementById('estadoTxt').innerHTML = `<span style="color:#EF4444;">⚠️ Error de GPS. Verifique permisos de ubicación.</span>`;
+          let msg = "Error al obtener GPS.";
+          if (error.code === 1) msg = "⚠️ Permiso de ubicación DENEGADO en su teléfono. Por favor actívelo en la barra superior o ajustes.";
+          if (error.code === 2) msg = "⚠️ Señal GPS no disponible.";
+          document.getElementById('estadoTxt').innerHTML = `<span style="color:#EF4444;">${msg}</span>`;
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
       );
     }
 
@@ -325,7 +319,7 @@
       }
       document.getElementById('btnIniciar').style.display = 'block';
       document.getElementById('btnDetener').style.display = 'none';
-      document.getElementById('estadoTxt').innerHTML = 'Estado: Recorrido finalizado.';
+      document.getElementById('estadoTxt').innerHTML = 'Estado: Transmisión finalizada.';
       document.getElementById('estadoTxt').style.borderColor = '#334155';
     }
   </script>
