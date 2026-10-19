@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OnTime - Panel del Chofer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OnTime - Panel Chofer</title>
 
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,14 +13,15 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
     body {
       background-color: #0A0E17;
       color: #F1F5F9;
-      padding: 20px;
+      padding: 16px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
@@ -29,30 +30,30 @@
     .card {
       background: #111827;
       border-radius: 16px;
-      padding: 28px;
+      padding: 20px;
       width: 100%;
-      max-width: 400px;
+      max-width: 380px;
       border: 1px solid #1E293B;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      text-align: center;
     }
 
     h1 {
       color: #38BDF8;
-      font-size: 1.5rem;
-      margin-bottom: 6px;
+      font-size: 1.3rem;
+      margin-bottom: 4px;
+      text-align: center;
       font-weight: 800;
     }
 
     p {
       color: #94A3B8;
-      font-size: 0.85rem;
-      margin-bottom: 20px;
+      font-size: 0.8rem;
+      margin-bottom: 18px;
+      text-align: center;
     }
 
     .campo {
-      margin-bottom: 16px;
-      text-align: left;
+      margin-bottom: 14px;
     }
 
     label {
@@ -70,27 +71,23 @@
       border: 1px solid #334155;
       border-radius: 8px;
       color: white;
-      font-size: 1rem;
+      font-size: 0.95rem;
       outline: none;
-    }
-
-    input:focus, select:focus {
-      border-color: #38BDF8;
     }
 
     .vista-previa {
       width: 100%;
-      height: 140px;
+      height: 110px;
       border-radius: 8px;
       border: 2px dashed #334155;
-      margin-top: 8px;
+      margin-top: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
       background: #0F172A;
       color: #64748B;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
     .vista-previa img {
@@ -107,7 +104,6 @@
       font-weight: bold;
       font-size: 1rem;
       cursor: pointer;
-      transition: 0.2s;
       margin-top: 10px;
     }
 
@@ -123,49 +119,130 @@
     }
 
     .estado {
-      margin-top: 20px;
-      font-size: 0.85rem;
-      padding: 12px;
+      margin-top: 16px;
+      font-size: 0.8rem;
+      padding: 10px;
       border-radius: 8px;
       background: #1E293B;
       border: 1px solid #334155;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h1>🚌 OnTime - Panel Chofer</h1>
+    <h1>🚌 OnTime - Chofer</h1>
     <p>Ruta 201 | Turis-Mar c.a.</p>
 
-    <!-- Selector de Unidad -->
     <div class="campo">
-      <label>Unidad / Tipo de Bus:</label>
+      <label>Línea / Tipo de Bus:</label>
       <select id="tipoBus">
         <option value="Villarroeles">Villarroeles (V)</option>
         <option value="Brisa de la Sierra">Brisa de la Sierra (B)</option>
       </select>
     </div>
 
-    <!-- ID o Número de Unidad -->
     <div class="campo">
       <label>Número de Unidad (ID Bus):</label>
       <input type="number" id="idBus" placeholder="Ej: 101" value="101">
     </div>
 
-    <!-- Cargar Foto de la Unidad -->
     <div class="campo">
-      <label>Foto de la Unidad:</label>
-      <input type="file" id="fotoUnidad" accept="image/*" onchange="mostrarVistaPrevia(event)">
-      <div class="vista-previa" id="boxPrevia">Sin foto seleccionada</div>
+      <label>Foto de la Unidad (Opcional):</label>
+      <input type="file" id="fotoUnidad" accept="image/*" onchange="convertirFoto(event)">
+      <div class="vista-previa" id="boxPrevia">Sin foto (Opcional)</div>
     </div>
 
-    <!-- PIN de Autorización -->
     <div class="campo">
-      <label>Clave PIN de Autorización:</label>
-      <input type="password" id="pinAcceso" placeholder="Ingresa PIN de chofer">
+      <label>PIN de Autorización:</label>
+      <input type="password" id="pinAcceso" placeholder="Ingresa PIN (2010)">
     </div>
 
-    <!-- Botones de Acción -->
     <button id="btnIniciar" class="btn-start" onclick="validarYIniciar()">📡 Iniciar Transmisión GPS</button>
-    <button id="btnDetener" class="btn-stop" onclick="det
+    <button id="btnDetener" class="btn-stop" onclick="detenerGPS()">🛑 Detener Transmisión</button>
+
+    <div class="estado" id="estadoTxt">Estado: Esperando PIN...</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://ykwhdyvtlhjvusyjqlgb.supabase.co'; 
+    const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
+    const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const PIN_AUTORIZADO = "2010";[cite: 5]
+    let watchId = null;
+    let fotoEnBase64 = null; // Inicia vacía por si no la suben
+
+    function convertirFoto(event) {
+      const archivo = event.target.files[0];
+      const box = document.getElementById('boxPrevia');
+      if (archivo) {
+        const lector = new FileReader();
+        lector.onload = function(e) {
+          fotoEnBase64 = e.target.result;
+          box.innerHTML = `<img src="${fotoEnBase64}" alt="Foto unidad">`;
+        };
+        lector.readAsDataURL(archivo);
+      } else {
+        fotoEnBase64 = null;
+        box.innerHTML = 'Sin foto (Opcional)';
+      }
+    }
+
+    function validarYIniciar() {
+      const pinIngresado = document.getElementById('pinAcceso').value;
+
+      if (pinIngresado !== PIN_AUTORIZADO) {
+        document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">❌ PIN incorrecto. Usa 2010.</span>';
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        alert("El teléfono no soporta GPS.");
+        return;
+      }
+
+      const idBus = document.getElementById('idBus').value;
+      const tipoBus = document.getElementById('tipoBus').value;
+
+      document.getElementById('btnIniciar').style.display = 'none';
+      document.getElementById('btnDetener').style.display = 'block';
+      document.getElementById('estadoTxt').innerHTML = `<span style="color:#4ADE80;">🟢 Transmitiendo GPS (${tipoBus} #${idBus})...</span>`;
+
+      watchId = navigator.geolocation.watchPosition(
+        async (posicion) => {
+          const lat = posicion.coords.latitude;
+          const lng = posicion.coords.longitude;
+          const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0;
+
+          // Envía los datos. Si no hay foto, envía null y no da error.
+          await clienteSupabase
+            .from('ubicaciones_tiempo_real')
+            .insert([{
+              id_bus: parseInt(idBus),
+              latitud: lat,
+              longitud: lng,
+              velocidad: parseFloat(vel),
+              foto_url: fotoEnBase64 || null
+            }]);
+        },
+        (err) => {
+          document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">⚠️ Activa los permisos de GPS en tu celular.</span>';
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      );
+    }
+
+    function detenerGPS() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      document.getElementById('btnIniciar').style.display = 'block';
+      document.getElementById('btnDetener').style.display = 'none';
+      document.getElementById('estadoTxt').innerHTML = 'Estado: Transmisión finalizada.';
+    }
+  </script>
+</body>
+</html>
