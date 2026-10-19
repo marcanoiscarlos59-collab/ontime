@@ -102,7 +102,7 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     #mapa {
@@ -132,7 +132,7 @@
       border: 1px solid #334155;
       color: #94A3B8;
       border-radius: 8px;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.2s;
@@ -146,7 +146,6 @@
       box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
     }
 
-    /* Tarjetas de horarios limpios y directos */
     .tarjeta-horario {
       background: #1E293B;
       padding: 14px 16px;
@@ -177,6 +176,13 @@
 
     .btn-ver-bus:hover {
       background: #0EA5E9;
+    }
+
+    /* Estilo personalizado para el "muñequito"/icono del mapa */
+    .icono-marcador {
+      font-size: 1.8rem;
+      text-align: center;
+      line-height: 1;
     }
   </style>
 </head>
@@ -212,21 +218,38 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Coordenadas exactas en la Isla de Margarita
-    const COORDS_JUAN_GRIEGO = [11.0825, -63.9664]; // Terminal de Juan Griego
-    const COORDS_LA_VELA = [11.0250, -63.8340];     // CC La Vela (Pampatar)
+    const COORDS_JUAN_GRIEGO = [11.0825, -63.9664];
+    const COORDS_LA_VELA = [11.0250, -63.8340];
 
-    const mapa = L.map('mapa').setView([11.0333, -63.8800], 12);
+    const mapa = L.map('mapa').setView(COORDS_JUAN_GRIEGO, 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
     }).addTo(mapa);
 
+    setTimeout(() => {
+      mapa.invalidateSize();
+    }, 300);
+
     let marcadorPunto = null;
     let marcadorBus = null;
 
-    // Listas limpias de horarios basadas en tu imagen de referencia
+    // Crear icono personalizado tipo muñequito/emoji sin errores de imagen
+    const iconoParada = L.divIcon({
+      html: '<div class="icono-marcador">🚏</div>',
+      className: '',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+
+    const iconoBusLive = L.divIcon({
+      html: '<div class="icono-marcador">🚌</div>',
+      className: '',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+
     const horariosLocales = {
       JuanGriego: [
         '05:45', '06:15', '06:25', '06:45', '07:15', '07:45', 
@@ -245,7 +268,7 @@
     function enfocarUbicacion(destino) {
       document.querySelectorAll('.btn-origen').forEach(b => b.classList.remove('activo'));
 
-      if(destino === 'JuanGriego') {
+      if (destino === 'JuanGriego') {
         document.getElementById('btn-jg').classList.add('activo');
         mapa.flyTo(COORDS_JUAN_GRIEGO, 16, { duration: 1.5 });
         mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal de Juan Griego");
@@ -260,8 +283,8 @@
 
     function mostrarPin(coords, texto) {
       if (marcadorPunto) mapa.removeLayer(marcadorPunto);
-      marcadorPunto = L.marker(coords).addTo(mapa);
-      marcadorPunto.bindPopup(`<b style="font-size:1rem;">${texto}</b>`).openPopup();
+      marcadorPunto = L.marker(coords, { icon: iconoParada }).addTo(mapa);
+      marcadorPunto.bindPopup(`<b style="font-size:1rem; color:#111;">${texto}</b>`).openPopup();
     }
 
     function renderizarHorarios(lista) {
@@ -296,7 +319,7 @@
 
       if (marcadorBus) mapa.removeLayer(marcadorBus);
 
-      marcadorBus = L.marker([bus.latitud, bus.longitud]).addTo(mapa);
+      marcadorBus = L.marker([bus.latitud, bus.longitud], { icon: iconoBusLive }).addTo(mapa);
       marcadorBus.bindPopup(`
         <div style="color:#111;">
           <b>🚌 Ruta 201 en Vivo</b><br>
@@ -306,7 +329,6 @@
       `).openPopup();
     }
 
-    // Iniciar enfocado en Juan Griego
     enfocarUbicacion('JuanGriego');
   </script>
 </body>
