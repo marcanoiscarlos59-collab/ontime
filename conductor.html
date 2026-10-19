@@ -198,11 +198,10 @@
 
     <div class="campo">
       <label>PIN de Autorización:</label>
-      <input type="password" id="pinAcceso" placeholder="Ingresa PIN (2010)" oninput="verificarPinEnTiempoReal()">
+      <input type="password" id="pinAcceso" placeholder="Ingresa PIN de chofer" oninput="verificarPinEnTiempoReal()">
     </div>
 
     <button id="btnIniciar" class="btn-start" onclick="validarYIniciar()">📡 Iniciar Transmisión GPS</button>
-    <button id="btnDetener" class="btn-stop" onclick="detenerGPS()">🛑 Finalizar Recorrido</button>
 
     <div class="estado" id="estadoTxt">Estado: Ingrese su PIN de chofer para comenzar.</div>
   </div>
@@ -212,8 +211,7 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const PIN_AUTORIZADO = "2010";[cite: 5]
-    let watchId = null;
+    const PIN_AUTORIZADO = "2010"; // PIN Secreto
     let fotoEnBase64 = null;
 
     function convertirFoto(event) {
@@ -237,10 +235,10 @@
       const estadoDiv = document.getElementById('estadoTxt');
 
       if (pinIngresado === PIN_AUTORIZADO) {
-        estadoDiv.innerHTML = '<span style="color:#4ADE80;">✅ PIN Correcto. Listo para transmitir.</span>';
+        estadoDiv.innerHTML = '<span style="color:#4ADE80; font-weight:bold;">✅ PIN Correcto. Presiona Iniciar Transmisión.</span>';
         estadoDiv.style.borderColor = '#16A34A';
-      } else if (pinIngresado.length > 0) {
-        estadoDiv.innerHTML = '<span style="color:#EF4444;">❌ PIN Incorrecto (Usar 2010)</span>';
+      } else if (pinIngresado.length >= 4) {
+        estadoDiv.innerHTML = '<span style="color:#EF4444; font-weight:bold;">❌ PIN Incorrecto.</span>';
         estadoDiv.style.borderColor = '#DC2626';
       } else {
         estadoDiv.innerHTML = 'Estado: Ingrese su PIN de chofer para comenzar.';
@@ -253,40 +251,33 @@
       const idBus = document.getElementById('idBus').value;
 
       if (pinIngresado !== PIN_AUTORIZADO) {
-        alert("⚠️ El PIN ingresado es incorrecto. Debe ser 2010.");
+        alert("❌ PIN Incorrecto. Solo personal autorizado.");
         return;
       }
 
       if (!idBus) {
-        alert("⚠️ Ingrese el número de unidad.");
+        alert("⚠️ Por favor ingresa el número de tu unidad.");
         return;
       }
 
       if (!navigator.geolocation) {
-        alert("⚠️ Su teléfono no tiene soporte para señal GPS.");
+        alert("⚠️ Su dispositivo no soporta geolocalización GPS.");
         return;
       }
 
       const tipoBus = document.getElementById('tipoBus').value;
       const horarioSeleccionado = document.getElementById('horarioSalida').value;
 
-      document.getElementById('btnIniciar').style.display = 'none';
-      document.getElementById('btnDetener').style.display = 'block';
-      document.getElementById('estadoTxt').innerHTML = '<span style="color:#38BDF8;">📡 Solicitando permisos de GPS a su teléfono...</span>';
+      document.getElementById('estadoTxt').innerHTML = '<span style="color:#38BDF8;">📡 Activando GPS y abriendo mapa...</span>';
 
-      // Solicitar posicionamiento GPS continuo al navegador
-      watchId = navigator.geolocation.watchPosition(
+      // Captura de ubicación directa
+      navigator.geolocation.getCurrentPosition(
         async (posicion) => {
           const lat = posicion.coords.latitude;
           const lng = posicion.coords.longitude;
           const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0;
 
-          document.getElementById('estadoTxt').innerHTML = `
-            <span style="color:#4ADE80; font-weight:bold;">🟢 TRANSMITIENDO EN VIVO</span><br>
-            <span style="font-size:0.75rem; color:#94A3B8;">Lat: ${lat.toFixed(4)} | Lng: ${lng.toFixed(4)} | ${vel} km/h</span>
-          `;
-
-          // Guardar posición en la tabla de Supabase
+          // Guardar posición inicial en Supabase
           const { error } = await clienteSupabase
             .from('ubicaciones_tiempo_real')
             .upsert({
@@ -300,27 +291,20 @@
               timestamp: new Date().toISOString()
             }, { onConflict: 'id_bus' });
 
-          if (error) console.error("Error enviando datos:", error);
+          if (error) {
+            alert("Error conectando con el servidor. Intente de nuevo.");
+            return;
+          }
+
+          // REDIRECCIÓN AUTOMÁTICA AL MAPA PRINCIPAL CON UNIDAD ACTIVA
+          window.location.href = `index.html?busActive=${idBus}&hora=${encodeURIComponent(horarioSeleccionado)}`;
         },
         (error) => {
-          let msg = "Error al obtener GPS.";
-          if (error.code === 1) msg = "⚠️ Permiso de ubicación DENEGADO en su teléfono. Por favor actívelo en la barra superior o ajustes.";
-          if (error.code === 2) msg = "⚠️ Señal GPS no disponible.";
-          document.getElementById('estadoTxt').innerHTML = `<span style="color:#EF4444;">${msg}</span>`;
+          alert("⚠️ Activa los permisos de ubicación/GPS en tu celular para transmitir.");
+          document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">⚠️ Activa la ubicación en tu teléfono.</span>';
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
       );
-    }
-
-    function detenerGPS() {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-      }
-      document.getElementById('btnIniciar').style.display = 'block';
-      document.getElementById('btnDetener').style.display = 'none';
-      document.getElementById('estadoTxt').innerHTML = 'Estado: Transmisión finalizada.';
-      document.getElementById('estadoTxt').style.borderColor = '#334155';
     }
   </script>
 </body>
