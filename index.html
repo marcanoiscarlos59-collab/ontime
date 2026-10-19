@@ -175,7 +175,8 @@
     <div class="header-info">
       <h1>🚏 OnTime | Ruta 201</h1>
     </div>
-    <a href="conductor.html" class="btn-chofer">🔑 Chofer</a>
+    <!-- Agregamos un parametro de version v=2 para forzar la recarga limpia -->
+    <a href="conductor.html?v=2" class="btn-chofer">🔑 Chofer</a>
   </header>
 
   <div id="contenedor-app">
@@ -227,101 +228,4 @@
       iconAnchor: [15, 15]
     });
 
-    const horariosLocales = {
-      JuanGriego: [
-        '05:45', '06:15', '06:25', '06:45', '07:15', '07:45', 
-        '08:15', '08:45', '09:15', '09:25', '09:45', '10:15', 
-        '10:45', '11:15', '11:25', '11:45', '12:15', '12:45', 
-        '13:15', '14:15', '15:15', '16:15', '17:15', '18:15'
-      ],
-      LaVela: [
-        '06:30', '07:15', '07:45', '08:15', '08:45', '09:15', 
-        '09:45', '10:15', '10:45', '11:15', '11:45', '12:15', 
-        '12:45', '13:15', '14:15', '15:15', '16:15', '16:45', 
-        '17:15', '17:45', '18:15', '18:45', '19:15', '20:15'
-      ]
-    };
-
-    function enfocarUbicacion(destino) {
-      destinoActual = destino;
-      document.querySelectorAll('.btn-origen').forEach(b => b.classList.remove('activo'));
-
-      if (destino === 'JuanGriego') {
-        document.getElementById('btn-jg').classList.add('activo');
-        mapa.flyTo(COORDS_JUAN_GRIEGO, 16, { duration: 1.2 });
-        mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal Juan Griego");
-      } else {
-        document.getElementById('btn-vela').classList.add('activo');
-        mapa.flyTo(COORDS_LA_VELA, 16, { duration: 1.2 });
-        mostrarPin(COORDS_LA_VELA, "🛍️ CC La Vela");
-      }
-
-      renderizarHorariosDinamicamente();
-    }
-
-    function mostrarPin(coords, texto) {
-      if (marcadorPunto) mapa.removeLayer(marcadorPunto);
-      marcadorPunto = L.marker(coords, { icon: iconoParada }).addTo(mapa);
-      marcadorPunto.bindPopup(`<b style="color:#111;">${texto}</b>`).openPopup();
-    }
-
-    function renderizarHorariosDinamicamente() {
-      const contenedor = document.getElementById('lista-horarios');
-      contenedor.innerHTML = '';
-
-      const ahora = new Date();
-      const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
-      const lista = horariosLocales[destinoActual];
-
-      const horariosFuturos = lista.filter(horaStr => {
-        const [h, m] = horaStr.split(':').map(Number);
-        return (h * 60 + m) >= minutosActuales;
-      });
-
-      const listaAMostrar = (horariosFuturos.length > 0) ? horariosFuturos : lista;
-
-      listaAMostrar.forEach(hora => {
-        const tarjeta = document.createElement('div');
-        tarjeta.className = 'tarjeta-horario';
-        tarjeta.innerHTML = `
-          <div class="hora-texto">🕒 ${hora}</div>
-          <button class="btn-ver-bus" onclick="rastrearUnidad('${hora}')">📍 Ver Bus</button>
-        `;
-        contenedor.appendChild(tarjeta);
-      });
-    }
-
-    async function rastrearUnidad(hora) {
-      const { data: ubicaciones } = await clienteSupabase
-        .from('ubicaciones_tiempo_real')
-        .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(1);
-
-      if (!ubicaciones || ubicaciones.length === 0) {
-        alert(`La unidad de las ${hora} aún no ha encendido el GPS.`);
-        return;
-      }
-
-      const bus = ubicaciones[0];
-      mapa.flyTo([bus.latitud, bus.longitud], 16, { duration: 1.2 });
-
-      if (marcadorBus) mapa.removeLayer(marcadorBus);
-
-      let imagenHTML = bus.foto_url ? `<img src="${bus.foto_url}" class="img-bus-popup" alt="Unidad">` : '';
-
-      marcadorBus = L.marker([bus.latitud, bus.longitud], { icon: iconoBusLive }).addTo(mapa);
-      marcadorBus.bindPopup(`
-        <div style="color:#111; text-align:center;">
-          <b>🚌 Bus en Vivo (${hora})</b><br>
-          <b>Velocidad:</b> ${bus.velocidad || 0} km/h
-          ${imagenHTML}
-        </div>
-      `).openPopup();
-    }
-
-    setInterval(renderizarHorariosDinamicamente, 60000);
-    enfocarUbicacion('JuanGriego');
-  </script>
-</body>
-</html>
+    const
