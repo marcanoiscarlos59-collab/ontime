@@ -121,12 +121,6 @@
       color: white;
     }
 
-    .btn-stop {
-      background: #DC2626;
-      color: white;
-      display: none;
-    }
-
     .estado {
       margin-top: 16px;
       font-size: 0.85rem;
@@ -265,43 +259,42 @@
         return;
       }
 
-      const tipoBus = document.getElementById('tipoBus').value;
       const horarioSeleccionado = document.getElementById('horarioSalida').value;
+      document.getElementById('estadoTxt').innerHTML = '<span style="color:#38BDF8;">📡 Obteniendo señal GPS y conectando...</span>';
 
-      document.getElementById('estadoTxt').innerHTML = '<span style="color:#38BDF8;">📡 Activando GPS y abriendo mapa...</span>';
-
-      // Captura de ubicación directa
+      // Capturar la posición actual del celular y enviarla directo a Supabase
       navigator.geolocation.getCurrentPosition(
         async (posicion) => {
           const lat = posicion.coords.latitude;
           const lng = posicion.coords.longitude;
           const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0;
 
-          // Guardar posición inicial en Supabase
+          // Inserción directa (evita errores de clave única)
           const { error } = await clienteSupabase
             .from('ubicaciones_tiempo_real')
-            .upsert({
+            .insert([{
               id_bus: parseInt(idBus),
               latitud: lat,
               longitud: lng,
               velocidad: parseFloat(vel),
               foto_url: fotoEnBase64 || null,
               horario_salida: horarioSeleccionado,
-              estado_unidad: 'SALIO',
-              timestamp: new Date().toISOString()
-            }, { onConflict: 'id_bus' });
+              estado_unidad: 'SALIO'
+            }]);
 
           if (error) {
-            alert("Error conectando con el servidor. Intente de nuevo.");
+            console.error("Detalle del error:", error);
+            alert("⚠️ Error conectando con el servidor. Verifique su conexión.");
+            document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">Error al conectar con la base de datos.</span>';
             return;
           }
 
-          // REDIRECCIÓN AUTOMÁTICA AL MAPA PRINCIPAL CON UNIDAD ACTIVA
+          // Redirección exitosa al mapa principal con la unidad activa
           window.location.href = `index.html?busActive=${idBus}&hora=${encodeURIComponent(horarioSeleccionado)}`;
         },
         (error) => {
-          alert("⚠️ Activa los permisos de ubicación/GPS en tu celular para transmitir.");
-          document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">⚠️ Activa la ubicación en tu teléfono.</span>';
+          alert("⚠️ Active los permisos de ubicación/GPS en su teléfono para transmitir.");
+          document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">⚠️ Active la ubicación en su teléfono.</span>';
         },
         { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
       );
