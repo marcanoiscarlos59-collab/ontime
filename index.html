@@ -238,8 +238,9 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // Coordenadas reales corregidas
     const COORDS_JUAN_GRIEGO = [11.0825, -63.9664];
-    const COORDS_LA_VELA = [11.0250, -63.8340];
+    const COORDS_LA_VELA = [10.9795, -63.8209]; // C.C. La Vela (Av. Bolívar)
 
     const mapa = L.map('mapa', { zoomControl: false }).setView(COORDS_JUAN_GRIEGO, 15);
 
@@ -269,7 +270,6 @@
       iconAnchor: [15, 15]
     });
 
-    // Listado limpio y directo idéntico al formato oficial del cartel
     const horariosOficiales = {
       JuanGriego: [
         { linea: 'B', hora: '05:45 AM' }, { linea: 'B', hora: '12:45 PM' },
@@ -313,7 +313,7 @@
       } else {
         document.getElementById('btn-vela').classList.add('activo');
         mapa.flyTo(COORDS_LA_VELA, 16, { duration: 1.2 });
-        mostrarPin(COORDS_LA_VELA, "🛍️ CC La Vela");
+        mostrarPin(COORDS_LA_VELA, "🛍️ C.C. La Vela (Av. Bolívar)");
       }
 
       sincronizarYRenderizar();
