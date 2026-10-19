@@ -105,7 +105,7 @@
       border-top-left-radius: 16px;
       border-top-right-radius: 16px;
       border-top: 2px solid #334155;
-      max-height: 48vh;
+      max-height: 45vh;
       display: flex;
       flex-direction: column;
       z-index: 999;
@@ -169,36 +169,15 @@
       color: #F8FAFC;
     }
 
-    .acciones-horario {
-      display: flex;
-      gap: 6px;
-    }
-
     .btn-ver-bus {
       background: #0284C7;
       color: white;
       border: none;
-      padding: 6px 10px;
+      padding: 8px 12px;
       border-radius: 6px;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: bold;
       cursor: pointer;
-    }
-
-    .btn-alarma {
-      background: #334155;
-      color: #94A3B8;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .btn-alarma.activada {
-      background: #16A34A;
-      color: white;
     }
 
     .icono-marcador {
@@ -258,7 +237,6 @@
     let marcadorPunto = null;
     let marcadorBus = null;
     let destinoActual = 'JuanGriego';
-    let alarmaReservada = null;
 
     const iconoParada = L.divIcon({
       html: '<div class="icono-marcador">🚏</div>',
@@ -341,36 +319,19 @@
         
         const claseLetra = item.linea === 'V' ? 'badge-v' : 'badge-b';
         const nombreLinea = item.linea === 'V' ? 'Villarroeles' : 'Brisa de la Sierra';
-        const esAlarmaActiva = alarmaReservada === item.hora;
-        const textoAlarma = esAlarmaActiva ? '🔔 Activada' : '⏰ Avisarme';
-        const claseAlarma = esAlarmaActiva ? 'btn-alarma activada' : 'btn-alarma';
 
         tarjeta.innerHTML = `
           <div class="info-linea">
             <span class="badge-letra ${claseLetra}" title="${nombreLinea}">${item.linea}</span>
             <div class="hora-texto">${item.hora}</div>
           </div>
-          <div class="acciones-horario">
-            <button class="${claseAlarma}" onclick="toggleAlarma('${item.hora}')">${textoAlarma}</button>
-            <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}')">📍 Ver Bus</button>
-          </div>
+          <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}')">📍 Ver Bus</button>
         `;
         contenedor.appendChild(tarjeta);
       });
     }
 
-    function toggleAlarma(hora) {
-      if (alarmaReservada === hora) {
-        alarmaReservada = null;
-        alert(`Has cancelado la notificación para las ${hora}.`);
-      } else {
-        alarmaReservada = hora;
-        alert(`🔔 ¡Listo! Te avisaremos cuando la unidad de las ${hora} esté en ruta.`);
-      }
-      renderizarHorariosDinamicamente();
-    }
-
-    // RASTREO EN VIVO CORREGIDO: Toma el ultimo bus transmitiendo sin bloquearse por la hora exacta
+    // Rastrear la posicion mas reciente registrada en Supabase
     async function rastrearUnidad(horaSeleccionada) {
       const { data: ubicaciones, error } = await clienteSupabase
         .from('ubicaciones_tiempo_real')
@@ -379,22 +340,23 @@
         .limit(1);
 
       if (error || !ubicaciones || ubicaciones.length === 0) {
-        alert(`La unidad para las ${horaSeleccionada} aún no ha encendido el GPS en la vía.`);
+        alert(`No hay ninguna unidad transmitiendo GPS en este momento para la hora ${horaSeleccionada}.`);
         return;
       }
 
       const bus = ubicaciones[0];
+
+      // Mover el mapa hacia las coordenadas exactas del chofer
       mapa.flyTo([bus.latitud, bus.longitud], 16, { duration: 1.2 });
 
       if (marcadorBus) mapa.removeLayer(marcadorBus);
 
       let imagenHTML = bus.foto_url ? `<img src="${bus.foto_url}" class="img-bus-popup" alt="Unidad">` : '';
-      let horarioBus = bus.horario_salida || horaSeleccionada;
 
       marcadorBus = L.marker([bus.latitud, bus.longitud], { icon: iconoBusLive }).addTo(mapa);
       marcadorBus.bindPopup(`
         <div style="color:#111; text-align:center;">
-          <b>🚌 Bus en Vivo (${horarioBus})</b><br>
+          <b>🚌 Bus en Vivo (${bus.horario_salida || horaSeleccionada})</b><br>
           <b>Unidad ID:</b> #${bus.id_bus}<br>
           <b>Velocidad:</b> ${bus.velocidad || 0} km/h
           ${imagenHTML}
