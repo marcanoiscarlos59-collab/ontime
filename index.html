@@ -85,7 +85,6 @@
       font-weight: 700;
     }
 
-    /* Selector de Origen */
     .selector-origen {
       display: flex;
       gap: 8px;
@@ -112,7 +111,6 @@
       box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
     }
 
-    /* Tarjetas de Horarios */
     .tarjeta-horario {
       background: #1E293B;
       padding: 12px 14px;
@@ -138,7 +136,6 @@
       color: #F8FAFC;
     }
 
-    /* Badges para Tipos de Bus */
     .tag-bus {
       font-size: 0.72rem;
       padding: 4px 8px;
@@ -184,7 +181,6 @@
 
   <div id="contenedor-principal">
     <div id="panel-lateral">
-      
       <div>
         <h2 class="seccion-titulo">⏰ Horarios de Salida</h2>
         <div class="selector-origen">
@@ -193,9 +189,7 @@
         </div>
         <div id="lista-horarios">Cargando horarios...</div>
       </div>
-
     </div>
-
     <div id="mapa"></div>
   </div>
 
@@ -204,14 +198,12 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ========================================================
-    // MAPA CON ESTILO OSCURO (CartoDB Dark Matter)
-    // ========================================================
+    // Mapa centrado en la Isla de Margarita con OpenStreetMap limpio
     const mapa = L.map('mapa').setView([11.0333, -63.8800], 12);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap © CARTO'
+      attribution: '© OpenStreetMap'
     }).addTo(mapa);
 
     let filtroActual = 'Diario';
@@ -228,7 +220,7 @@
       const contenedor = document.getElementById('lista-horarios');
 
       if (error || !horarios || horarios.length === 0) {
-        contenedor.innerHTML = '<p style="color:#94A3B8; font-size:0.85rem;">No hay salidas registradas para esta selección.</p>';
+        contenedor.innerHTML = '<p style="color:#94A3B8; font-size:0.85rem;">No hay salidas registradas. Asegúrate de ejecutar el SQL en Supabase.</p>';
         return;
       }
 
