@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OnTime - Transporte Isla de Margarita</title>
 
-  <!-- Hojas de estilo y librerías de Leaflet (Mapas) y Supabase JS -->
+  <!-- Librerías de Leaflet (Mapas) y Supabase JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,6 +22,7 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      background-color: #F8FAFC;
     }
 
     header {
@@ -46,8 +47,8 @@
     }
 
     #panel-lateral {
-      width: 360px;
-      background-color: #F8FAFC;
+      width: 380px;
+      background-color: #FFFFFF;
       border-right: 1px solid #E2E8F0;
       padding: 20px;
       overflow-y: auto;
@@ -66,60 +67,80 @@
       color: #0F172A;
       border-bottom: 2px solid #0EA5E9;
       padding-bottom: 5px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
-    .tarjeta-parada {
+    /* Pestañas de Navegación */
+    .pestanas-rutas {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn-pestana {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #0EA5E9;
       background: white;
-      padding: 10px 14px;
-      margin-bottom: 8px;
-      border-radius: 8px;
-      border-left: 4px solid #0EA5E9;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      color: #0EA5E9;
+      border-radius: 6px;
+      font-weight: bold;
       cursor: pointer;
-      transition: background 0.2s;
     }
 
-    .tarjeta-parada:hover {
-      background: #E0F2FE;
+    .btn-pestana.activo {
+      background: #0EA5E9;
+      color: white;
     }
 
-    .tarjeta-parada h3 {
-      font-size: 0.95rem;
+    /* Estilos para Tarjeta de Horarios */
+    .tarjeta-horario {
+      background: #F1F5F9;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .info-horario strong {
+      display: block;
       color: #0F172A;
+      font-size: 0.95rem;
     }
 
-    .tarjeta-parada p {
+    .info-horario span {
       font-size: 0.8rem;
       color: #64748B;
     }
 
-    /* Estilos para la Tabla de Horarios */
-    table.tabla-horarios {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      font-size: 0.85rem;
-    }
-
-    table.tabla-horarios th {
-      background-color: #0EA5E9;
+    /* Botón de Notificación */
+    .btn-notificar {
+      background: #0284C7;
       color: white;
-      text-align: left;
-      padding: 8px;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    table.tabla-horarios td {
-      padding: 8px;
-      border-bottom: 1px solid #E2E8F0;
-      color: #334155;
+    .btn-notificar.activado {
+      background: #16A34A;
     }
 
-    table.tabla-horarios tr:nth-child(even) {
-      background-color: #F1F5F9;
+    .tarjeta-parada {
+      background: white;
+      padding: 10px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      border-left: 4px solid #0EA5E9;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      cursor: pointer;
     }
   </style>
 </head>
@@ -134,16 +155,20 @@
     <!-- Panel Lateral -->
     <div id="panel-lateral">
       
-      <!-- Lista de Paradas -->
-      <div>
-        <h2 class="seccion-titulo">📍 Paradas Principales</h2>
-        <div id="lista-paradas">Cargando paradas...</div>
-      </div>
-
-      <!-- Tabla de Horarios -->
+      <!-- Menú de Horarios y Notificaciones -->
       <div>
         <h2 class="seccion-titulo">⏰ Horarios de Salida</h2>
-        <div id="contenedor-horarios">Cargando horarios...</div>
+        <div class="pestanas-rutas">
+          <button class="btn-pestana activo" onclick="cambiarSentido('IDA')">Punto A ➔ Punto B</button>
+          <button class="btn-pestana" onclick="cambiarSentido('VUELTA')">Punto B ➔ Punto A</button>
+        </div>
+        <div id="lista-horarios">Cargando horarios...</div>
+      </div>
+
+      <!-- Paradas y Ubicación -->
+      <div>
+        <h2 class="seccion-titulo">📍 Paradas Cercanas</h2>
+        <div id="lista-paradas">Cargando paradas...</div>
       </div>
 
     </div>
@@ -157,15 +182,21 @@
     // 1. CONFIGURACIÓN SUPABASE
     // ========================================================
     const SUPABASE_URL = 'https://ykwhdyvtlhjvusyjqlgb.supabase.co'; 
-    const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin'; // Tu clave publicable
+    const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
 
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let sentidoActual = 'IDA';
+
+    // Solicitud de permiso para Notificaciones Web del Navegador
+    if ("Notification" in window) {
+      Notification.requestPermission();
+    }
+
     // ========================================================
-    // 2. INICIALIZAR EL MAPA CENTRADO EN LA ISLA DE MARGARITA
+    // 2. INICIALIZAR MAPA CENTRADO EN ISLA DE MARGARITA
     // ========================================================
-    // Coordenadas centrales de la Isla de Margarita: [11.0000, -63.9000]
-    const mapa = L.map('mapa').setView([11.0000, -63.9000], 11);
+    const mapa = L.map('mapa').setView([11.0000, -63.9000], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -173,51 +204,7 @@
     }).addTo(mapa);
 
     // ========================================================
-    // 3. OBTENER Y MOSTRAR PARADAS EN MARGARITA
-    // ========================================================
-    async function cargarParadas() {
-      const { data: paradas, error } = await clienteSupabase
-        .from('paradas')
-        .select('*');
-
-      const contenedorLista = document.getElementById('lista-paradas');
-
-      if (error) {
-        contenedorLista.innerHTML = '<p style="color:red;">Error al cargar paradas.</p>';
-        return;
-      }
-
-      if (!paradas || paradas.length === 0) {
-        contenedorLista.innerHTML = '<p style="font-size: 0.85rem;">No hay paradas registradas aún.</p>';
-        return;
-      }
-
-      contenedorLista.innerHTML = '';
-
-      paradas.forEach(parada => {
-        // Marcador en la isla
-        const marcador = L.marker([parada.latitud, parada.longitud]).addTo(mapa);
-        marcador.bindPopup(`<b>${parada.nombre_parada}</b>`);
-
-        // Tarjeta lateral
-        const tarjeta = document.createElement('div');
-        tarjeta.className = 'tarjeta-parada';
-        tarjeta.innerHTML = `
-          <h3>${parada.nombre_parada}</h3>
-          <p>Lat: ${parada.latitud} | Lng: ${parada.longitud}</p>
-        `;
-        
-        tarjeta.addEventListener('click', () => {
-          mapa.flyTo([parada.latitud, parada.longitud], 15);
-          marcador.openPopup();
-        });
-
-        contenedorLista.appendChild(tarjeta);
-      });
-    }
-
-    // ========================================================
-    // 4. OBTENER Y MOSTRAR HORARIOS DE SALIDA
+    // 3. HORARIOS Y SISTEMA DE NOTIFICACIONES
     // ========================================================
     async function cargarHorarios() {
       const { data: horarios, error } = await clienteSupabase
@@ -227,50 +214,124 @@
           dia_semana,
           hora_salida,
           observacion,
-          rutas ( nombre_ruta )
+          rutas ( nombre_ruta, origen, destino )
         `)
         .order('hora_salida', { ascending: true });
 
-      const contenedor = document.getElementById('contenedor-horarios');
+      const contenedor = document.getElementById('lista-horarios');
 
       if (error || !horarios || horarios.length === 0) {
         contenedor.innerHTML = '<p style="font-size:0.85rem;">No hay horarios cargados aún.</p>';
         return;
       }
 
-      let html = `
-        <table class="tabla-horarios">
-          <thead>
-            <tr>
-              <th>Ruta</th>
-              <th>Día</th>
-              <th>Salida</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
+      contenedor.innerHTML = '';
 
       horarios.forEach(h => {
-        const nombreRuta = h.rutas ? h.rutas.nombre_ruta : 'Ruta general';
-        // Formatear la hora HH:MM
         const horaFormateada = h.hora_salida.substring(0, 5);
+        const ruta = h.rutas ? h.rutas.nombre_ruta : 'Ruta General';
 
-        html += `
-          <tr>
-            <td><strong>${nombreRuta}</strong></td>
-            <td>${h.dia_semana}</td>
-            <td><strong>${horaFormateada}</strong></td>
-          </tr>
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'tarjeta-horario';
+        tarjeta.innerHTML = `
+          <div class="info-horario">
+            <strong>${horaFormateada} hrs</strong>
+            <span>${ruta} (${h.dia_semana})</span>
+          </div>
+          <button class="btn-notificar" onclick="activarNotificacion('${horaFormateada}', '${ruta}', this)">
+            🔔 Notificarme
+          </button>
         `;
-      });
 
-      html += `</tbody></table>`;
-      contenedor.innerHTML = html;
+        contenedor.appendChild(tarjeta);
+      });
     }
 
-    // Cargar los datos
-    cargarParadas();
+    function cambiarSentido(sentido) {
+      sentidoActual = sentido;
+      document.querySelectorAll('.btn-pestana').forEach(btn => btn.classList.remove('activo'));
+      event.target.classList.add('activo');
+      cargarHorarios();
+    }
+
+    function activarNotificacion(hora, ruta, boton) {
+      if (Notification.permission === "granted") {
+        boton.classList.toggle('activado');
+        if(boton.classList.contains('activado')) {
+          boton.innerHTML = '✅ Activada';
+          new Notification("OnTime - Alerta Activada", {
+            body: `Te avisaremos cuando el bus de la ruta ${ruta} esté por salir (${hora}).`,
+            icon: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png"
+          });
+        } else {
+          boton.innerHTML = '🔔 Notificarme';
+        }
+      } else {
+        alert("Por favor habilita las notificaciones en tu navegador para usar esta función.");
+      }
+    }
+
+    // ========================================================
+    // 4. UBICACIÓN EN TIEMPO REAL (MONITOREO DE BUSES)
+    // ========================================================
+    let marcadoresBuses = {};
+
+    clienteSupabase
+      .channel('bus-movimiento')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'ubicaciones_tiempo_real' 
+      }, payload => {
+        const nuevaUbicacion = payload.new;
+        const idBus = nuevaUbicacion.id_bus;
+
+        // Si el bus ya está en el mapa se actualiza la posición, si no, se crea
+        if (marcadoresBuses[idBus]) {
+          marcadoresBuses[idBus].setLatLng([nuevaUbicacion.latitud, nuevaUbicacion.longitud]);
+        } else {
+          marcadoresBuses[idBus] = L.marker([nuevaUbicacion.latitud, nuevaUbicacion.longitud]).addTo(mapa);
+        }
+
+        marcadoresBuses[idBus].bindPopup(`
+          <b>🚌 Bus en Vivo #${idBus}</b><br>
+          Velocidad: ${nuevaUbicacion.velocidad || 0} km/h<br>
+          Última actualización: En este momento
+        `).openPopup();
+      })
+      .subscribe();
+
+    // ========================================================
+    // 5. PARADAS EN EL MAPA
+    // ========================================================
+    async function cargarParadas() {
+      const { data: paradas } = await clienteSupabase.from('paradas').select('*');
+      const contenedor = document.getElementById('lista-paradas');
+
+      if (!paradas || paradas.length === 0) {
+        contenedor.innerHTML = '<p style="font-size: 0.85rem;">No hay paradas registradas.</p>';
+        return;
+      }
+
+      contenedor.innerHTML = '';
+      paradas.forEach(parada => {
+        const marcador = L.marker([parada.latitud, parada.longitud]).addTo(mapa);
+        marcador.bindPopup(`<b>🚏 Parada: ${parada.nombre_parada}</b>`);
+
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'tarjeta-parada';
+        tarjeta.innerHTML = `<h3>🚏 ${parada.nombre_parada}</h3>`;
+        tarjeta.onclick = () => {
+          mapa.flyTo([parada.latitud, parada.longitud], 15);
+          marcador.openPopup();
+        };
+        contenedor.appendChild(tarjeta);
+      });
+    }
+
+    // Ejecución inicial
     cargarHorarios();
+    cargarParadas();
   </script>
 </body>
 </html>
