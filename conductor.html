@@ -35,7 +35,6 @@
       max-width: 380px;
       border: 1px solid #1E293B;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      position: relative;
     }
 
     .btn-volver {
@@ -85,6 +84,10 @@
       outline: none;
     }
 
+    input:focus, select:focus {
+      border-color: #38BDF8;
+    }
+
     .vista-previa {
       width: 100%;
       height: 110px;
@@ -122,6 +125,10 @@
       color: white;
     }
 
+    .btn-start:hover {
+      background: #15803D;
+    }
+
     .btn-stop {
       background: #DC2626;
       color: white;
@@ -130,12 +137,13 @@
 
     .estado {
       margin-top: 16px;
-      font-size: 0.8rem;
-      padding: 10px;
+      font-size: 0.85rem;
+      padding: 12px;
       border-radius: 8px;
       background: #1E293B;
       border: 1px solid #334155;
       text-align: center;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -145,7 +153,7 @@
     <a href="index.html" class="btn-volver">⬅️ Volver al Mapa</a>
 
     <h1>🚌 OnTime - Chofer</h1>
-    <p>Ruta 201 | Turis-Mar c.a.</p>
+    <p>Turis-Mar c.a. | Ruta 201</p>
 
     <div class="campo">
       <label>Línea / Tipo de Bus:</label>
@@ -168,13 +176,13 @@
 
     <div class="campo">
       <label>PIN de Autorización:</label>
-      <input type="password" id="pinAcceso" placeholder="Ingresa PIN (2010)">
+      <input type="password" id="pinAcceso" placeholder="Ingresa PIN (2010)" oninput="verificarPinEnTiempoReal()">
     </div>
 
     <button id="btnIniciar" class="btn-start" onclick="validarYIniciar()">📡 Iniciar Transmisión GPS</button>
     <button id="btnDetener" class="btn-stop" onclick="detenerGPS()">🛑 Detener Transmisión</button>
 
-    <div class="estado" id="estadoTxt">Estado: Esperando PIN...</div>
+    <div class="estado" id="estadoTxt">Estado: Ingrese su PIN de chofer para comenzar.</div>
   </div>
 
   <script>
@@ -182,7 +190,7 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const PIN_AUTORIZADO = "2010";[cite: 5]
+    const PIN_AUTORIZADO = "2010"; // PIN configurado[cite: 5]
     let watchId = null;
     let fotoEnBase64 = null;
 
@@ -202,33 +210,63 @@
       }
     }
 
-    function validarYIniciar() {
+    // Alerta visual instantánea del PIN en el cuadro de estado
+    function verificarPinEnTiempoReal() {
       const pinIngresado = document.getElementById('pinAcceso').value;
+      const estadoDiv = document.getElementById('estadoTxt');
+
+      if (pinIngresado.length === 0) {
+        estadoDiv.innerHTML = 'Estado: Ingrese su PIN de chofer para comenzar.';
+        estadoDiv.style.borderColor = '#334155';
+      } else if (pinIngresado === PIN_AUTORIZADO) {
+        estadoDiv.innerHTML = '<span style="color:#4ADE80;">✅ PIN Correcto. Listo para transmitir.</span>';
+        estadoDiv.style.borderColor = '#16A34A';
+      } else {
+        estadoDiv.innerHTML = '<span style="color:#EF4444;">❌ PIN Incorrecto (Debe ser 2010)</span>';
+        estadoDiv.style.borderColor = '#DC2626';
+      }
+    }
+
+    async function validarYIniciar() {
+      const pinIngresado = document.getElementById('pinAcceso').value;
+      const idBus = document.getElementById('idBus').value;
 
       if (pinIngresado !== PIN_AUTORIZADO) {
-        document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">❌ PIN incorrecto. Usa 2010.</span>';
+        alert("PIN incorrecto. Por favor verifique la clave (2010).");
+        document.getElementById('pinAcceso').focus();
+        return;
+      }
+
+      if (!idBus) {
+        alert("Por favor ingrese el número de la unidad.");
+        document.getElementById('idBus').focus();
         return;
       }
 
       if (!navigator.geolocation) {
-        alert("El teléfono no soporta GPS.");
+        alert("Su dispositivo móvil no soporta geolocalización GPS.");
         return;
       }
 
-      const idBus = document.getElementById('idBus').value;
       const tipoBus = document.getElementById('tipoBus').value;
-
       document.getElementById('btnIniciar').style.display = 'none';
       document.getElementById('btnDetener').style.display = 'block';
-      document.getElementById('estadoTxt').innerHTML = `<span style="color:#4ADE80;">🟢 Transmitiendo GPS (${tipoBus} #${idBus})...</span>`;
+      document.getElementById('estadoTxt').innerHTML = `<span style="color:#38BDF8;">🛰️ Obteniendo señal GPS para Unidad #${idBus} (${tipoBus})...</span>`;
 
+      // Iniciar rastreo continuo de la posición GPS del celular
       watchId = navigator.geolocation.watchPosition(
         async (posicion) => {
           const lat = posicion.coords.latitude;
           const lng = posicion.coords.longitude;
           const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0;
 
-          await clienteSupabase
+          document.getElementById('estadoTxt').innerHTML = `
+            <span style="color:#4ADE80; font-weight:bold;">🟢 Transmitiendo GPS en Vivo</span><br>
+            <span style="font-size:0.75rem; color:#94A3B8;">Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)} | Vel: ${vel} km/h</span>
+          `;
+
+          // Enviar ubicación y foto (si existe) a Supabase
+          const { error } = await clienteSupabase
             .from('ubicaciones_tiempo_real')
             .insert([{
               id_bus: parseInt(idBus),
@@ -237,11 +275,20 @@
               velocidad: parseFloat(vel),
               foto_url: fotoEnBase64 || null
             }]);
+
+          if (error) {
+            console.error("Error al sincronizar con Supabase:", error);
+          }
         },
-        (err) => {
-          document.getElementById('estadoTxt').innerHTML = '<span style="color:#EF4444;">⚠️ Activa los permisos de GPS en tu celular.</span>';
+        (error) => {
+          let mensajeError = "Error de GPS desconocido.";
+          if (error.code === 1) mensajeError = "Permiso de ubicación denegado. Active el GPS en su teléfono.";
+          if (error.code === 2) mensajeError = "Posición no disponible actualmente.";
+          if (error.code === 3) mensajeError = "Tiempo de espera agotado buscando señal GPS.";
+
+          document.getElementById('estadoTxt').innerHTML = `<span style="color:#EF4444;">⚠️ ${mensajeError}</span>`;
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
       );
     }
 
@@ -253,6 +300,7 @@
       document.getElementById('btnIniciar').style.display = 'block';
       document.getElementById('btnDetener').style.display = 'none';
       document.getElementById('estadoTxt').innerHTML = 'Estado: Transmisión finalizada.';
+      document.getElementById('estadoTxt').style.borderColor = '#334155';
     }
   </script>
 </body>
