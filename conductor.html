@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OnTime - Panel del Chofer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background-color: #0F172A; color: white; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #1E293B; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; border: 1px solid #334155; text-align: center; }
+    h1 { color: #38BDF8; font-size: 1.5rem; margin-bottom: 8px; }
+    p { color: #94A3B8; font-size: 0.9rem; margin-bottom: 20px; }
+    select, input { width: 100%; padding: 12px; margin-bottom: 16px; background: #0F172A; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 1rem; }
+    button { width: 100%; padding: 14px; border-radius: 8px; border: none; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+    .btn-start { background: #16A34A; color: white; }
+    .btn-stop { background: #DC2626; color: white; display: none; }
+    .estado { margin-top: 15px; font-size: 0.85rem; padding: 10px; border-radius: 6px; background: #0F172A; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>🚌 OnTime Chofer</h1>
+    <p>Transmisión de ubicación en tiempo real</p>
+
+    <label style="display:block; text-align:left; margin-bottom:6px; font-size:0.85rem; color:#94A3B8;">Número o ID del Bus:</label>
+    <input type="number" id="idBus" placeholder="Ej: 1" value="1">
+
+    <button id="btnIniciar" class="btn-start" onclick="iniciarGPS()">📡 Iniciar Transmisión GPS</button>
+    <button id="btnDetener" class="btn-stop" onclick="detenerGPS()">🛑 Detener Transmisión</button>
+
+    <div class="estado" id="estadoTxt">Estado: Esperando inicio...</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://ykwhdyvtlhjvusyjqlgb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
+    const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let watchId = null;
+
+    function iniciarGPS() {
+      if (!navigator.geolocation) {
+        alert("Tu navegador no soporta geolocalización GPS.");
+        return;
+      }
+
+      const idBus = document.getElementById('idBus').value;
+      if (!idBus) {
+        alert("Por favor ingresa el ID del bus.");
+        return;
+      }
+
+      document.getElementById('btnIniciar').style.display = 'none';
+      document.getElementById('btnDetener').style.display = 'block';
+      document.getElementById('estadoTxt').innerHTML = '<span style="color:#4ADE80;">🟢 Transmitiendo GPS a Supabase...</span>';
+
+      // Rastrear posición continua
+      watchId = navigator.geolocation.watchPosition(
+        async (posicion) => {
+          const lat = posicion.coords.latitude;
+          const lng = posicion.coords.longitude;
+          const vel = posicion.coords.speed ? (posicion.coords.speed * 3.6).toFixed(1) : 0; // m/s a km/h
+
+          // Enviar posición a Supabase
+          const { error } = await clienteSupabase
+            .from('ubicaciones_tiempo_real')
+            .insert([{
+              id_bus: parseInt(idBus),
+              latitud: lat,
+              longitud: lng,
+              velocidad: parseFloat(vel)
+            }]);
+
+          if (error) {
+            console.error("Error al enviar posición:", error);
+          } else {
+            console.log(`Enviado: ${lat}, ${lng} | Vel: ${vel} km/h`);
+          }
+        },
+        (err) => {
+          console.error("Error GPS:", err);
+          alert("Error al obtener señal GPS. Asegúrate de tener la ubicación activada.");
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      );
+    }
+
+    function detenerGPS() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      document.getElementById('btnIniciar').style.display = 'block';
+      document.getElementById('btnDetener').style.display = 'none';
+      document.getElementById('estadoTxt').innerHTML = 'Estado: Transmisión detenida.';
+    }
+  </script>
+</body>
+</html>
