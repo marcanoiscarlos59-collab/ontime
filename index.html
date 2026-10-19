@@ -78,10 +78,33 @@
       100% { opacity: 1; }
     }
 
-    .badge-linea {
+    .header-derecha {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-panel-chofer {
       background: rgba(139, 92, 246, 0.2);
       border: 1px solid #8B5CF6;
       color: #C084FC;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-decoration: none;
+      transition: 0.2s;
+    }
+
+    .btn-panel-chofer:hover {
+      background: #8B5CF6;
+      color: white;
+    }
+
+    .badge-linea {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid #38BDF8;
+      color: #BAE6FD;
       padding: 4px 12px;
       border-radius: 20px;
       font-size: 0.8rem;
@@ -178,7 +201,6 @@
       background: #0EA5E9;
     }
 
-    /* Estilo personalizado para el "muñequito"/icono del mapa */
     .icono-marcador {
       font-size: 1.8rem;
       text-align: center;
@@ -196,7 +218,11 @@
         <span>EN VIVO</span>
       </div>
     </div>
-    <div class="badge-linea">Ruta 201 | Turis-Mar c.a.</div>
+    <div class="header-derecha">
+      <!-- Botón directo para entrar al panel de choferes sin escribir enlaces -->
+      <a href="conductor.html" class="btn-panel-chofer">🔑 Panel Chofer</a>
+      <div class="badge-linea">Ruta 201</div>
+    </div>
   </header>
 
   <div id="contenedor-principal">
@@ -235,7 +261,6 @@
     let marcadorPunto = null;
     let marcadorBus = null;
 
-    // Crear icono personalizado tipo muñequito/emoji sin errores de imagen
     const iconoParada = L.divIcon({
       html: '<div class="icono-marcador">🚏</div>',
       className: '',
