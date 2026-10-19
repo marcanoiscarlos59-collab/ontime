@@ -259,11 +259,11 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Coordenadas oficiales exactas verificadas
-    const COORDS_JUAN_GRIEGO = [11.0924, -63.9631]; // Terminal de Pasajeros de Juan Griego
+    // Coordenada exacta centrada en el edificio del Terminal de Pasajeros de Juan Griego
+    const COORDS_JUAN_GRIEGO = [11.0915, -63.9625]; 
     const COORDS_LA_VELA     = [10.9795, -63.8209]; // C.C. La Vela (Av. Bolívar)
 
-    const mapa = L.map('mapa', { zoomControl: false }).setView(COORDS_JUAN_GRIEGO, 15);
+    const mapa = L.map('mapa', { zoomControl: false }).setView(COORDS_JUAN_GRIEGO, 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
