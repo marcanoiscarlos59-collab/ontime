@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OnTime - Transporte Isla de Margarita</title>
+  <title>OnTime - Isla de Margarita</title>
 
   <!-- Librerías de Leaflet (Mapas) y Supabase JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -15,29 +15,42 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
     body {
       display: flex;
       flex-direction: column;
       height: 100vh;
-      background-color: #F8FAFC;
+      background-color: #0B0F19;
+      color: #F8FAFC;
     }
 
     header {
-      background-color: #0F172A;
+      background-color: #111827;
       color: white;
-      padding: 15px 20px;
+      padding: 16px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      border-bottom: 1px solid #1F2937;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
     header h1 {
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       color: #38BDF8;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .estado-en-vivo {
+      background: rgba(16, 185, 129, 0.1);
+      color: #34D399;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
     #contenedor-principal {
@@ -47,14 +60,14 @@
     }
 
     #panel-lateral {
-      width: 380px;
-      background-color: #FFFFFF;
-      border-right: 1px solid #E2E8F0;
+      width: 400px;
+      background-color: #111827;
+      border-right: 1px solid #1F2937;
       padding: 20px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 24px;
     }
 
     #mapa {
@@ -63,111 +76,108 @@
     }
 
     .seccion-titulo {
-      font-size: 1.1rem;
-      color: #0F172A;
-      border-bottom: 2px solid #0EA5E9;
-      padding-bottom: 5px;
+      font-size: 1.05rem;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       margin-bottom: 12px;
+      font-weight: 600;
     }
 
-    /* Pestañas de Navegación */
-    .pestanas-rutas {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .btn-pestana {
-      flex: 1;
-      padding: 8px;
-      border: 1px solid #0EA5E9;
-      background: white;
-      color: #0EA5E9;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .btn-pestana.activo {
-      background: #0EA5E9;
-      color: white;
-    }
-
-    /* Estilos para Tarjeta de Horarios */
+    /* Tarjeta de Horarios Interactiva */
     .tarjeta-horario {
-      background: #F1F5F9;
-      padding: 10px 12px;
-      border-radius: 8px;
-      margin-bottom: 8px;
+      background: #1F2937;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border: 1px solid #374151;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
 
-    .info-horario strong {
+    .tarjeta-horario:hover {
+      background: #374151;
+      border-color: #38BDF8;
+      transform: translateY(-1px);
+    }
+
+    .info-horario .hora {
       display: block;
-      color: #0F172A;
-      font-size: 0.95rem;
+      color: #F8FAFC;
+      font-size: 1.1rem;
+      font-weight: 700;
     }
 
-    .info-horario span {
-      font-size: 0.8rem;
-      color: #64748B;
+    .info-horario .ruta {
+      font-size: 0.85rem;
+      color: #94A3B8;
     }
 
-    /* Botón de Notificación */
-    .btn-notificar {
+    .badge-accion {
       background: #0284C7;
       color: white;
       border: none;
-      padding: 6px 10px;
+      padding: 8px 12px;
       border-radius: 6px;
       font-size: 0.75rem;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      transition: background 0.2s;
     }
 
-    .btn-notificar.activado {
-      background: #16A34A;
+    .badge-accion:hover {
+      background: #0ea5e9;
     }
 
     .tarjeta-parada {
-      background: white;
-      padding: 10px;
-      margin-bottom: 6px;
-      border-radius: 6px;
-      border-left: 4px solid #0EA5E9;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      background: #1F2937;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border-left: 4px solid #38BDF8;
       cursor: pointer;
+      border-top: 1px solid #374151;
+      border-right: 1px solid #374151;
+      border-bottom: 1px solid #374151;
+      transition: background 0.2s;
+    }
+
+    .tarjeta-parada:hover {
+      background: #374151;
+    }
+
+    .tarjeta-parada h3 {
+      font-size: 0.95rem;
+      color: #F8FAFC;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>🚏 OnTime - Isla de Margarita</h1>
-    <span>Estado: <strong style="color: #4ADE80;">En Vivo</strong></span>
+    <h1>🚏 OnTime <span style="font-size: 0.9rem; color: #94A3B8; font-weight: normal;">| Margarita</span></h1>
+    <div class="estado-en-vivo">● En Vivo</div>
   </header>
 
   <div id="contenedor-principal">
     <!-- Panel Lateral -->
     <div id="panel-lateral">
       
-      <!-- Menú de Horarios y Notificaciones -->
+      <!-- Menú de Horarios Interactivos -->
       <div>
-        <h2 class="seccion-titulo">⏰ Horarios de Salida</h2>
-        <div class="pestanas-rutas">
-          <button class="btn-pestana activo" onclick="cambiarSentido('IDA')">Punto A ➔ Punto B</button>
-          <button class="btn-pestana" onclick="cambiarSentido('VUELTA')">Punto B ➔ Punto A</button>
-        </div>
+        <h2 class="seccion-titulo">⏰ Horarios y Unidades en Ruta</h2>
         <div id="lista-horarios">Cargando horarios...</div>
       </div>
 
       <!-- Paradas y Ubicación -->
       <div>
-        <h2 class="seccion-titulo">📍 Paradas Cercanas</h2>
+        <h2 class="seccion-titulo">📍 Paradas de la Isla</h2>
         <div id="lista-paradas">Cargando paradas...</div>
       </div>
 
@@ -186,42 +196,39 @@
 
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let sentidoActual = 'IDA';
-
-    // Solicitud de permiso para Notificaciones Web del Navegador
-    if ("Notification" in window) {
-      Notification.requestPermission();
-    }
-
     // ========================================================
-    // 2. INICIALIZAR MAPA CENTRADO EN ISLA DE MARGARITA
+    // 2. INICIALIZAR MAPA (Isla de Margarita)
     // ========================================================
-    const mapa = L.map('mapa').setView([11.0000, -63.9000], 12);
+    const mapa = L.map('mapa').setView([11.0000, -63.9000], 11);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
     }).addTo(mapa);
 
+    let marcadoresBuses = {};
+    let marcadorSeleccionadoBus = null;
+
     // ========================================================
-    // 3. HORARIOS Y SISTEMA DE NOTIFICACIONES
+    // 3. CARGAR HORARIOS Y VINCULAR CLIC A LA UNIDAD
     // ========================================================
     async function cargarHorarios() {
       const { data: horarios, error } = await clienteSupabase
         .from('horarios')
         .select(`
           id,
+          id_ruta,
           dia_semana,
           hora_salida,
           observacion,
-          rutas ( nombre_ruta, origen, destino )
+          rutas ( nombre_ruta )
         `)
         .order('hora_salida', { ascending: true });
 
       const contenedor = document.getElementById('lista-horarios');
 
       if (error || !horarios || horarios.length === 0) {
-        contenedor.innerHTML = '<p style="font-size:0.85rem;">No hay horarios cargados aún.</p>';
+        contenedor.innerHTML = '<p style="font-size:0.85rem; color:#94A3B8;">No hay horarios cargados aún.</p>';
         return;
       }
 
@@ -235,71 +242,62 @@
         tarjeta.className = 'tarjeta-horario';
         tarjeta.innerHTML = `
           <div class="info-horario">
-            <strong>${horaFormateada} hrs</strong>
-            <span>${ruta} (${h.dia_semana})</span>
+            <span class="hora">🕒 ${horaFormateada}</span>
+            <span class="ruta">${ruta}</span>
           </div>
-          <button class="btn-notificar" onclick="activarNotificacion('${horaFormateada}', '${ruta}', this)">
-            🔔 Notificarme
+          <button class="badge-accion">
+            📍 Ver bus
           </button>
         `;
+
+        // Al tocar la tarjeta o el botón de la hora, busca la ubicación en tiempo real de esa ruta/bus
+        tarjeta.onclick = () => buscarUbicacionEnVivo(h.id_ruta, ruta, horaFormateada);
 
         contenedor.appendChild(tarjeta);
       });
     }
 
-    function cambiarSentido(sentido) {
-      sentidoActual = sentido;
-      document.querySelectorAll('.btn-pestana').forEach(btn => btn.classList.remove('activo'));
-      event.target.classList.add('activo');
-      cargarHorarios();
-    }
+    // ========================================================
+    // 4. LOCALIZAR LA UNIDAD EN EL MAPA AL TOCAR LA HORA
+    // ========================================================
+    async function buscarUbicacionEnVivo(idRuta, nombreRuta, hora) {
+      // Buscamos si hay un bus asociado a esta ruta o la última ubicación reportada
+      const { data: ubicaciones, error } = await clienteSupabase
+        .from('ubicaciones_tiempo_real')
+        .select(`
+          *,
+          buses ( id_ruta, placa )
+        `)
+        .order('timestamp', { ascending: false })
+        .limit(1);
 
-    function activarNotificacion(hora, ruta, boton) {
-      if (Notification.permission === "granted") {
-        boton.classList.toggle('activado');
-        if(boton.classList.contains('activado')) {
-          boton.innerHTML = '✅ Activada';
-          new Notification("OnTime - Alerta Activada", {
-            body: `Te avisaremos cuando el bus de la ruta ${ruta} esté por salir (${hora}).`,
-            icon: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png"
-          });
-        } else {
-          boton.innerHTML = '🔔 Notificarme';
-        }
-      } else {
-        alert("Por favor habilita las notificaciones en tu navegador para usar esta función.");
+      if (error || !ubicaciones || ubicaciones.length === 0) {
+        alert(`La unidad de la ruta "${nombreRuta}" (${hora}) aún no ha encendido el GPS en vivo.`);
+        return;
       }
+
+      const ultimaUbicacion = ubicaciones[0];
+      const lat = ultimaUbicacion.latitud;
+      const lng = ultimaUbicacion.longitud;
+
+      // Centrar el mapa con animación de vuelo hacia el bus
+      mapa.flyTo([lat, lng], 15, { duration: 1.5 });
+
+      // Mostrar popup indicando qué unidad es
+      if (marcadorSeleccionadoBus) {
+        mapa.removeLayer(marcadorSeleccionadoBus);
+      }
+
+      marcadorSeleccionadoBus = L.marker([lat, lng]).addTo(mapa);
+      marcadorSeleccionadoBus.bindPopup(`
+        <div style="color: #111;">
+          <b>🚌 Ruta: ${nombreRuta}</b><br>
+          <b>Salida programada:</b> ${hora}<br>
+          <b>Velocidad actual:</b> ${ultimaUbicacion.velocidad || 0} km/h<br>
+          <span style="color: green; font-weight: bold;">● Transmitiendo en vivo</span>
+        </div>
+      `).openPopup();
     }
-
-    // ========================================================
-    // 4. UBICACIÓN EN TIEMPO REAL (MONITOREO DE BUSES)
-    // ========================================================
-    let marcadoresBuses = {};
-
-    clienteSupabase
-      .channel('bus-movimiento')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'ubicaciones_tiempo_real' 
-      }, payload => {
-        const nuevaUbicacion = payload.new;
-        const idBus = nuevaUbicacion.id_bus;
-
-        // Si el bus ya está en el mapa se actualiza la posición, si no, se crea
-        if (marcadoresBuses[idBus]) {
-          marcadoresBuses[idBus].setLatLng([nuevaUbicacion.latitud, nuevaUbicacion.longitud]);
-        } else {
-          marcadoresBuses[idBus] = L.marker([nuevaUbicacion.latitud, nuevaUbicacion.longitud]).addTo(mapa);
-        }
-
-        marcadoresBuses[idBus].bindPopup(`
-          <b>🚌 Bus en Vivo #${idBus}</b><br>
-          Velocidad: ${nuevaUbicacion.velocidad || 0} km/h<br>
-          Última actualización: En este momento
-        `).openPopup();
-      })
-      .subscribe();
 
     // ========================================================
     // 5. PARADAS EN EL MAPA
@@ -309,7 +307,7 @@
       const contenedor = document.getElementById('lista-paradas');
 
       if (!paradas || paradas.length === 0) {
-        contenedor.innerHTML = '<p style="font-size: 0.85rem;">No hay paradas registradas.</p>';
+        contenedor.innerHTML = '<p style="font-size: 0.85rem; color:#94A3B8;">No hay paradas registradas.</p>';
         return;
       }
 
@@ -329,7 +327,7 @@
       });
     }
 
-    // Ejecución inicial
+    // Cargar datos iniciales
     cargarHorarios();
     cargarParadas();
   </script>
