@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OnTime - Ruta 201 (Juan Griego / Pampatar)</title>
+  <title>OnTime - Ruta 201 (Juan Griego / Cesáreo Armas)</title>
 
   <!-- Leaflet CSS/JS y Supabase -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -98,10 +98,11 @@
       border: 1px solid #334155;
       color: #94A3B8;
       border-radius: 8px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.2s;
+      text-align: center;
     }
 
     .btn-origen.activo {
@@ -120,14 +121,6 @@
       justify-content: space-between;
       align-items: center;
       border: 1px solid #334155;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .tarjeta-horario:hover {
-      border-color: #38BDF8;
-      transform: translateX(3px);
-      background: #26334D;
     }
 
     .hora-texto {
@@ -184,8 +177,8 @@
       <div>
         <h2 class="seccion-titulo">⏰ Horarios de Salida</h2>
         <div class="selector-origen">
-          <button class="btn-origen activo" id="btn-jg" onclick="filtrarOrigen('Diario', 'btn-jg')">🚌 Juan Griego</button>
-          <button class="btn-origen" id="btn-vela" onclick="filtrarOrigen('Diario (Retorno)', 'btn-vela')">🛍️ CC La Vela</button>
+          <button class="btn-origen activo" id="btn-jg" onclick="enfocarUbicacion('JuanGriego')">🚌 Juan Griego</button>
+          <button class="btn-origen" id="btn-ca" onclick="enfocarUbicacion('CesareoArmas')">📍 Cesáreo Armas</button>
         </div>
         <div id="lista-horarios">Cargando horarios...</div>
       </div>
@@ -198,7 +191,11 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Mapa centrado en la Isla de Margarita con OpenStreetMap limpio
+    // Coordenadas exactas en la Isla de Margarita
+    const COORDS_JUAN_GRIEGO = [11.0825, -63.9664]; // Terminal de Juan Griego
+    const COORDS_CESAREO_ARMAS = [10.9635, -63.8560]; // Zona de Av. Cesáreo Armas / Porlamar
+
+    // Inicializar mapa
     const mapa = L.map('mapa').setView([11.0333, -63.8800], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -206,29 +203,66 @@
       attribution: '© OpenStreetMap'
     }).addTo(mapa);
 
-    let filtroActual = 'Diario';
+    let marcadorPunto = null;
     let marcadorBus = null;
 
-    async function cargarHorarios() {
-      const { data: horarios, error } = await clienteSupabase
-        .from('horarios')
-        .select('*')
-        .eq('id_ruta', 201)
-        .eq('dia_semana', filtroActual)
-        .order('hora_salida', { ascending: true });
+    // Horarios de respaldo integrados
+    const horariosLocales = {
+      JuanGriego: [
+        { hora: '05:45', tipo: 'Brisa de la Sierra' },
+        { hora: '06:15', tipo: 'Brisa de la Sierra' },
+        { hora: '06:25', tipo: 'Villarroeles' },
+        { hora: '06:45', tipo: 'Villarroeles' },
+        { hora: '07:15', tipo: 'Brisa de la Sierra' },
+        { hora: '07:45', tipo: 'Villarroeles' },
+        { hora: '08:15', tipo: 'Villarroeles' },
+        { hora: '09:15', tipo: 'Brisa de la Sierra' },
+        { hora: '10:15', tipo: 'Villarroeles' },
+        { hora: '11:15', tipo: 'Brisa de la Sierra' },
+        { hora: '12:15', tipo: 'Villarroeles' }
+      ],
+      CesareoArmas: [
+        { hora: '06:30', tipo: 'Villarroeles' },
+        { hora: '07:15', tipo: 'Brisa de la Sierra' },
+        { hora: '07:45', tipo: 'Villarroeles' },
+        { hora: '08:15', tipo: 'Brisa de la Sierra' },
+        { hora: '09:15', tipo: 'Brisa de la Sierra' },
+        { hora: '10:15', tipo: 'Brisa de la Sierra' },
+        { hora: '11:15', tipo: 'Villarroeles' },
+        { hora: '12:15', tipo: 'Brisa de la Sierra' },
+        { hora: '13:15', tipo: 'Brisa de la Sierra' },
+        { hora: '14:15', tipo: 'Villarroeles' }
+      ]
+    };
 
-      const contenedor = document.getElementById('lista-horarios');
+    function enfocarUbicacion(destino) {
+      document.querySelectorAll('.btn-origen').forEach(b => b.classList.remove('activo'));
 
-      if (error || !horarios || horarios.length === 0) {
-        contenedor.innerHTML = '<p style="color:#94A3B8; font-size:0.85rem;">No hay salidas registradas. Asegúrate de ejecutar el SQL en Supabase.</p>';
-        return;
+      if(destino === 'JuanGriego') {
+        document.getElementById('btn-jg').classList.add('activo');
+        mapa.flyTo(COORDS_JUAN_GRIEGO, 16, { duration: 1.5 });
+        mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal de Juan Griego");
+      } else {
+        document.getElementById('btn-ca').classList.add('activo');
+        mapa.flyTo(COORDS_CESAREO_ARMAS, 16, { duration: 1.5 });
+        mostrarPin(COORDS_CESAREO_ARMAS, "📍 Av. Cesáreo Armas");
       }
 
+      renderizarHorarios(horariosLocales[destino]);
+    }
+
+    function mostrarPin(coords, texto) {
+      if (marcadorPunto) mapa.removeLayer(marcadorPunto);
+      marcadorPunto = L.marker(coords).addTo(mapa);
+      marcadorPunto.bindPopup(`<b style="font-size:1rem;">${texto}</b>`).openPopup();
+    }
+
+    function renderizarHorarios(lista) {
+      const contenedor = document.getElementById('lista-horarios');
       contenedor.innerHTML = '';
 
-      horarios.forEach(h => {
-        const horaFormateada = h.hora_salida.substring(0, 5);
-        const esVillarroeles = h.observacion.includes('Villarroeles');
+      lista.forEach(item => {
+        const esVillarroeles = item.tipo.includes('Villarroeles');
         const claseTag = esVillarroeles ? 'villarroeles' : 'brisa';
         const labelTipo = esVillarroeles ? 'V: Villarroeles' : 'B: Brisa de la Sierra';
 
@@ -236,25 +270,16 @@
         tarjeta.className = 'tarjeta-horario';
         tarjeta.innerHTML = `
           <div>
-            <div class="hora-texto">🕒 ${horaFormateada}</div>
+            <div class="hora-texto">🕒 ${item.hora}</div>
             <span class="tag-bus ${claseTag}">${labelTipo}</span>
           </div>
-          <button class="btn-ver-bus">📍 Ver Bus</button>
+          <button class="btn-ver-bus" onclick="rastrearUnidad('${item.hora}', '${labelTipo}')">📍 Ver Bus</button>
         `;
-
-        tarjeta.onclick = () => rastrearUnidadRuta(horaFormateada, labelTipo);
         contenedor.appendChild(tarjeta);
       });
     }
 
-    function filtrarOrigen(tipo, btnId) {
-      filtroActual = tipo;
-      document.querySelectorAll('.btn-origen').forEach(b => b.classList.remove('activo'));
-      document.getElementById(btnId).classList.add('activo');
-      cargarHorarios();
-    }
-
-    async function rastrearUnidadRuta(hora, tipoBus) {
+    async function rastrearUnidad(hora, tipoBus) {
       const { data: ubicaciones } = await clienteSupabase
         .from('ubicaciones_tiempo_real')
         .select('*')
@@ -262,12 +287,12 @@
         .limit(1);
 
       if (!ubicaciones || ubicaciones.length === 0) {
-        alert(`La unidad de las ${hora} (${tipoBus}) no ha iniciado la transmisión GPS.`);
+        alert(`La unidad de las ${hora} (${tipoBus}) aún no ha encendido el GPS.`);
         return;
       }
 
       const bus = ubicaciones[0];
-      mapa.flyTo([bus.latitud, bus.longitud], 15, { duration: 1.5 });
+      mapa.flyTo([bus.latitud, bus.longitud], 16, { duration: 1.5 });
 
       if (marcadorBus) mapa.removeLayer(marcadorBus);
 
@@ -282,7 +307,8 @@
       `).openPopup();
     }
 
-    cargarHorarios();
+    // Iniciar enfocado en Juan Griego
+    enfocarUbicacion('JuanGriego');
   </script>
 </body>
 </html>
