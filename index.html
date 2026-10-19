@@ -259,11 +259,11 @@
     const SUPABASE_KEY = 'sb_publishable_l14m2kh-gahgx8xBwfX0hQ_xGAin';
     const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Coordenada exacta centrada en el edificio del Terminal de Pasajeros de Juan Griego
-    const COORDS_JUAN_GRIEGO = [11.0915, -63.9625]; 
-    const COORDS_LA_VELA     = [10.9795, -63.8209]; // C.C. La Vela (Av. Bolívar)
+    // Coordenada exacta corregida sobre el edificio del Terminal
+    const COORDS_JUAN_GRIEGO = [11.0824, -63.9631]; 
+    const COORDS_LA_VELA     = [10.9795, -63.8209]; 
 
-    const mapa = L.map('mapa', { zoomControl: false }).setView(COORDS_JUAN_GRIEGO, 16);
+    const mapa = L.map('mapa', { zoomControl: false }).setView(COORDS_JUAN_GRIEGO, 17);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -330,11 +330,11 @@
 
       if (destino === 'JuanGriego') {
         document.getElementById('btn-jg').classList.add('activo');
-        mapa.flyTo(COORDS_JUAN_GRIEGO, 16, { duration: 1.2 });
-        mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal de Pasajeros Juan Griego");
+        mapa.flyTo(COORDS_JUAN_GRIEGO, 17, { duration: 1.2 });
+        mostrarPin(COORDS_JUAN_GRIEGO, "🚏 Terminal de Pasajeros Ciudad de Juangriego");
       } else {
         document.getElementById('btn-vela').classList.add('activo');
-        mapa.flyTo(COORDS_LA_VELA, 16, { duration: 1.2 });
+        mapa.flyTo(COORDS_LA_VELA, 17, { duration: 1.2 });
         mostrarPin(COORDS_LA_VELA, "🛍️ C.C. La Vela (Av. Bolívar)");
       }
 
@@ -451,7 +451,7 @@
     }
 
     function ubicarEnMapa(bus, horaSeleccionada) {
-      mapa.flyTo([bus.latitud, bus.longitud], 16, { duration: 1.2 });
+      mapa.flyTo([bus.latitud, bus.longitud], 17, { duration: 1.2 });
 
       if (marcadorBus) mapa.removeLayer(marcadorBus);
 
